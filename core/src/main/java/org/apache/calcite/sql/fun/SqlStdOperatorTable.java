@@ -1671,6 +1671,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction EXTRACT = new SqlExtractFunction();
 
   /**
+   * The SQL <code>DECADE</code> operator. Returns the Decade
+   * from a DATE or DATETIME  E.g.<br>
+   * <code>DECADE(date '2008-9-23')</code> returns <code>
+   * 200</code>
+   */
+  public static final SqlDatePartFunction DECADE =
+          new SqlDatePartFunction("DECADE", TimeUnit.DECADE);
+
+  /**
    * The SQL <code>YEAR</code> operator. Returns the Year
    * from a DATETIME  E.g.<br>
    * <code>YEAR(date '2008-9-23')</code> returns <code>
