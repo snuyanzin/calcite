@@ -136,7 +136,11 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING_ID;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUP_ID;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_A_SET;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
@@ -156,16 +160,24 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOG10;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOWER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAX;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MEMBER_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT_ALL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT_ALL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION_ALL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEXT_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
@@ -188,6 +200,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SINGLE_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SLICE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM0;
@@ -360,6 +373,27 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
+    defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
+    final MethodImplementor isEmptyImplementor =
+        new MethodImplementor(BuiltInMethod.IS_EMPTY.method);
+    defineImplementor(IS_EMPTY, NullPolicy.NONE, isEmptyImplementor, false);
+    defineImplementor(IS_NOT_EMPTY, NullPolicy.NONE, NotImplementor.of(isEmptyImplementor), false);
+    final MethodImplementor isASetImplementor =
+        new MethodImplementor(BuiltInMethod.IS_A_SET.method);
+    defineImplementor(IS_A_SET, NullPolicy.NONE, isASetImplementor, false);
+    defineImplementor(IS_NOT_A_SET, NullPolicy.NONE, NotImplementor.of(isASetImplementor), false);
+    defineMethod(MULTISET_INTERSECT, BuiltInMethod.MULTISET_INTERSECT.method, NullPolicy.NONE);
+    defineMethod(MULTISET_INTERSECT_ALL,
+        BuiltInMethod.MULTISET_INTERSECT_ALL.method, NullPolicy.NONE);
+    defineMethod(MULTISET_EXCEPT, BuiltInMethod.MULTISET_EXCEPT.method, NullPolicy.NONE);
+    defineMethod(MULTISET_EXCEPT_ALL, BuiltInMethod.MULTISET_EXCEPT_ALL.method, NullPolicy.NONE);
+    defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION.method, NullPolicy.NONE);
+    defineMethod(MULTISET_UNION_ALL, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.NONE);
+    final MethodImplementor subMultisetImplementor =
+        new MethodImplementor(BuiltInMethod.SUBMULTISET_OF.method);
+    defineImplementor(SUBMULTISET_OF, NullPolicy.NONE, subMultisetImplementor, false);
+    defineImplementor(NOT_SUBMULTISET_OF,
+        NullPolicy.NONE, NotImplementor.of(subMultisetImplementor), false);
 
     map.put(CASE, new CaseImplementor());
     map.put(COALESCE, new CoalesceImplementor());

@@ -577,6 +577,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.MULTISET_MULTISET);
 
+  public static final SqlBinaryOperator NOT_SUBMULTISET_OF =
+
+      // TODO: check if precedence is correct
+      new SqlBinaryOperator(
+          "NOT SUBMULTISET OF",
+          SqlKind.OTHER,
+          30,
+          true,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          null,
+          OperandTypes.MULTISET_MULTISET);
+
   //-------------------------------------------------------------
   //                   POSTFIX OPERATORS
   //-------------------------------------------------------------
@@ -687,6 +699,33 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.BOOLEAN,
           null,
           OperandTypes.MULTISET);
+
+  public static final SqlPostfixOperator IS_NOT_A_SET =
+      new SqlPostfixOperator(
+          "IS NOT A SET",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.MULTISET);
+
+  public static final SqlPostfixOperator IS_EMPTY =
+      new SqlPostfixOperator(
+          "IS EMPTY",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.COLLECTION_OR_MAP);
+
+  public static final SqlPostfixOperator IS_NOT_EMPTY =
+      new SqlPostfixOperator(
+          "IS NOT EMPTY",
+          SqlKind.OTHER,
+          28,
+          ReturnTypes.BOOLEAN,
+          null,
+          OperandTypes.COLLECTION_OR_MAP);
 
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
