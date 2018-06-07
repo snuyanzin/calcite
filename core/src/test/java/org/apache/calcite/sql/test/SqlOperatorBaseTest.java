@@ -3374,10 +3374,36 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("multiset[1] multiset intersect multiset[1]",
         "[1]",
         "INTEGER NOT NULL MULTISET NOT NULL");
-    tester.checkScalar("multiset[2] multiset intersect multiset[1]",
+    tester.checkScalar("multiset[2] multiset intersect all multiset[1]",
         "[]",
         "INTEGER NOT NULL MULTISET NOT NULL");
-
+    tester.checkScalar("multiset[2] multiset intersect distinct multiset[1]",
+        "[]",
+        "INTEGER NOT NULL MULTISET NOT NULL");
+    tester.checkScalar("multiset[1, 1] multiset intersect multiset[1, 1]",
+        "[1]",
+        "INTEGER NOT NULL MULTISET NOT NULL");
+    tester.checkScalar("multiset[1, 1] multiset intersect all multiset[1, 1]",
+        "[1, 1]",
+        "INTEGER NOT NULL MULTISET NOT NULL");
+    tester.checkScalar("multiset[1, 1] multiset intersect distinct multiset[1, 1]",
+        "[1]",
+        "INTEGER NOT NULL MULTISET NOT NULL");
+    tester.checkScalar(
+        "multiset[cast(null as integer), cast(null as integer)] "
+                  + "multiset intersect multiset[cast(null as integer)]",
+        "[null]",
+        "INTEGER MULTISET NOT NULL");
+    tester.checkScalar(
+        "multiset[cast(null as integer), cast(null as integer)] "
+                  + "multiset intersect all multiset[cast(null as integer)]",
+        "[null, null]",
+        "INTEGER MULTISET NOT NULL");
+    tester.checkScalar(
+        "multiset[cast(null as integer), cast(null as integer)] "
+                  + "multiset intersect distinct multiset[cast(null as integer)]",
+        "[null]",
+        "INTEGER MULTISET NOT NULL");
   }
 
   @Test public void testExceptOperator() {
@@ -3386,20 +3412,29 @@ public abstract class SqlOperatorBaseTest {
         "[]",
         "INTEGER NOT NULL MULTISET NOT NULL");
     tester.checkScalar("multiset[1] multiset except distinct multiset[1]",
-            "[]",
-            "INTEGER NOT NULL MULTISET NOT NULL");
+        "[]",
+        "INTEGER NOT NULL MULTISET NOT NULL");
     tester.checkScalar("multiset[2] multiset except multiset[1]",
         "[2]",
         "INTEGER NOT NULL MULTISET NOT NULL");
     tester.checkScalar("multiset[1,2,3] multiset except multiset[1]",
         "[2, 3]",
         "INTEGER NOT NULL MULTISET NOT NULL");
-    tester.checkScalar("multiset[1,2,3,2] multiset except multiset[1]",
-            "[2, 3, 2]",
-            "INTEGER NOT NULL MULTISET NOT NULL");
-    tester.checkScalar("multiset[1,2,3,2] multiset except distinct multiset[1]",
-            "[2, 3]",
-            "INTEGER NOT NULL MULTISET NOT NULL");
+    tester.checkScalar("cardinality(multiset[1,2,3,2] multiset except multiset[1])",
+        "2",
+        "INTEGER NOT NULL");
+    tester.checkScalar("cardinality(multiset[1,2,3,2] multiset except all multiset[1])",
+        "3",
+        "INTEGER NOT NULL");
+    tester.checkBoolean(
+        "(multiset[1,2,3,2] multiset except multiset[1]) submultiset of multiset[2, 3]",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(multiset[1,2,3,2] multiset except distinct multiset[1]) submultiset of multiset[2, 3]",
+        Boolean.TRUE);
+    tester.checkBoolean(
+        "(multiset[1,2,3,2] multiset except all multiset[1]) submultiset of multiset[2, 2, 3]",
+        Boolean.TRUE);
     tester.checkBoolean("(multiset[1,2,3] multiset except multiset[1]) is empty", Boolean.FALSE);
     tester.checkBoolean("(multiset[1] multiset except multiset[1]) is empty", Boolean.TRUE);
   }
@@ -5205,12 +5240,38 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("multiset[2] multiset union multiset[1]",
         "[1, 2]",
         "INTEGER NOT NULL MULTISET NOT NULL");
-    tester.checkScalar("multiset[1, 2, 3, 4, 2] multiset union multiset[1, 4, 5, 7, 8]",
-        "[1, 2, 3, 4, 5, 7, 8]",
-        "INTEGER NOT NULL MULTISET NOT NULL");
-    tester.checkScalar("multiset['a', 'b', 'c'] multiset union multiset['c', 'd', 'e']",
-        "[a, b, c, d, e]",
-        "CHAR(1) NOT NULL MULTISET NOT NULL");
+    tester.checkScalar("cardinality(multiset[1, 2, 3, 4, 2] "
+                    + "multiset union multiset[1, 4, 5, 7, 8])",
+        "7",
+        "INTEGER NOT NULL");
+    tester.checkScalar("cardinality(multiset[1, 2, 3, 4, 2] "
+                    + "multiset union distinct multiset[1, 4, 5, 7, 8])",
+        "7",
+        "INTEGER NOT NULL");
+    tester.checkBoolean("(multiset[1, 2, 3, 4, 2] "
+                    + "multiset union multiset[1, 4, 5, 7, 8]) "
+                    + "submultiset of multiset[1, 2, 3, 4, 5, 7, 8]",
+        Boolean.TRUE);
+    tester.checkBoolean("(multiset[1, 2, 3, 4, 2] "
+                    + "multiset union distinct multiset[1, 4, 5, 7, 8]) "
+                    + "submultiset of multiset[1, 2, 3, 4, 5, 7, 8]",
+        Boolean.TRUE);
+    tester.checkScalar("cardinality(multiset['a', 'b', 'c'] "
+                    + "multiset union multiset['c', 'd', 'e'])",
+        "5",
+        "INTEGER NOT NULL");
+    tester.checkScalar("cardinality(multiset['a', 'b', 'c'] "
+                    + "multiset union distinct multiset['c', 'd', 'e'])",
+        "5",
+        "INTEGER NOT NULL");
+    tester.checkBoolean("(multiset['a', 'b', 'c'] "
+                    + "multiset union multiset['c', 'd', 'e'])"
+                    + " submultiset of multiset['a', 'b', 'c', 'd', 'e']",
+         Boolean.TRUE);
+    tester.checkBoolean("(multiset['a', 'b', 'c'] "
+                    + "multiset union distinct multiset['c', 'd', 'e'])"
+                    + " submultiset of multiset['a', 'b', 'c', 'd', 'e']",
+         Boolean.TRUE);
     tester.checkScalar(
         "multiset[cast(null as double)] multiset union multiset[cast(null as double)]",
         "[null]",
@@ -5226,22 +5287,37 @@ public abstract class SqlOperatorBaseTest {
         SqlStdOperatorTable.MULTISET_UNION_ALL,
         VM_FENNEL,
         VM_JAVA);
-    tester.checkScalar("multiset[2] multiset union all multiset[1]",
-        "[2, 1]",
-        "INTEGER NOT NULL MULTISET NOT NULL");
-    tester.checkScalar("multiset[1, 2, 3, 4, 2] multiset union all multiset[1, 4, 5, 7, 8]",
-        "[1, 2, 3, 4, 2, 5, 7, 8, 1, 4]",
-        "INTEGER NOT NULL MULTISET NOT NULL");
-    tester.checkScalar("multiset['a', 'b', 'c'] multiset union all multiset['c', 'd', 'e']",
-        "[a, b, c, d, e]",
-        "CHAR(1) NOT NULL MULTISET NOT NULL");
+    tester.checkScalar("cardinality(multiset[1, 2, 3, 4, 2] "
+                    + "multiset union all multiset[1, 4, 5, 7, 8])",
+        "10",
+        "INTEGER NOT NULL");
+    tester.checkBoolean("(multiset[1, 2, 3, 4, 2] "
+                    + "multiset union all multiset[1, 4, 5, 7, 8]) "
+                    + "submultiset of multiset[1, 2, 3, 4, 5, 7, 8]",
+        Boolean.FALSE);
+    tester.checkBoolean("(multiset[1, 2, 3, 4, 2] "
+                    + "multiset union all multiset[1, 4, 5, 7, 8]) "
+                    + "submultiset of multiset[1, 1, 2, 2, 3, 4, 4, 5, 7, 8]",
+        Boolean.TRUE);
+    tester.checkScalar("cardinality(multiset['a', 'b', 'c'] "
+                    + "multiset union all multiset['c', 'd', 'e'])",
+        "6",
+        "INTEGER NOT NULL");
+    tester.checkBoolean("(multiset['a', 'b', 'c'] "
+                    + "multiset union all multiset['c', 'd', 'e'])"
+                    + " submultiset of multiset['a', 'b', 'c', 'd', 'e']",
+        Boolean.FALSE);
+    tester.checkBoolean("(multiset['a', 'b', 'c'] "
+                    + "multiset union distinct multiset['c', 'd', 'e'])"
+                    + " submultiset of multiset['a', 'b', 'c', 'd', 'e', 'c']",
+        Boolean.TRUE);
     tester.checkScalar(
         "multiset[cast(null as double)] multiset union all multiset[cast(null as double)]",
-        "[null]",
+        "[null, null]",
         "DOUBLE MULTISET NOT NULL");
     tester.checkScalar(
         "multiset[cast(null as boolean)] multiset union all multiset[cast(null as boolean)]",
-        "[null]",
+        "[null, null]",
         "BOOLEAN MULTISET NOT NULL");
   }
 
