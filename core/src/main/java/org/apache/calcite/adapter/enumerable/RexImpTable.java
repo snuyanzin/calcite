@@ -167,11 +167,11 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT_ALL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT_ALL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION_ALL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEXT_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
@@ -382,13 +382,16 @@ public class RexImpTable {
         new MethodImplementor(BuiltInMethod.IS_A_SET.method);
     defineImplementor(IS_A_SET, NullPolicy.NONE, isASetImplementor, false);
     defineImplementor(IS_NOT_A_SET, NullPolicy.NONE, NotImplementor.of(isASetImplementor), false);
-    defineMethod(MULTISET_INTERSECT, BuiltInMethod.MULTISET_INTERSECT.method, NullPolicy.NONE);
-    defineMethod(MULTISET_INTERSECT_ALL,
+    defineMethod(MULTISET_INTERSECT_DISTINCT,
+        BuiltInMethod.MULTISET_INTERSECT_DISTINCT.method, NullPolicy.NONE);
+    defineMethod(MULTISET_INTERSECT,
         BuiltInMethod.MULTISET_INTERSECT_ALL.method, NullPolicy.NONE);
-    defineMethod(MULTISET_EXCEPT, BuiltInMethod.MULTISET_EXCEPT.method, NullPolicy.NONE);
-    defineMethod(MULTISET_EXCEPT_ALL, BuiltInMethod.MULTISET_EXCEPT_ALL.method, NullPolicy.NONE);
-    defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION.method, NullPolicy.NONE);
-    defineMethod(MULTISET_UNION_ALL, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.NONE);
+    defineMethod(MULTISET_EXCEPT_DISTINCT,
+        BuiltInMethod.MULTISET_EXCEPT_DISTINCT.method, NullPolicy.NONE);
+    defineMethod(MULTISET_EXCEPT, BuiltInMethod.MULTISET_EXCEPT_ALL.method, NullPolicy.NONE);
+    defineMethod(MULTISET_UNION_DISTINCT,
+        BuiltInMethod.MULTISET_UNION_DISTINCT.method, NullPolicy.NONE);
+    defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.NONE);
     final MethodImplementor subMultisetImplementor =
         new MethodImplementor(BuiltInMethod.SUBMULTISET_OF.method);
     defineImplementor(SUBMULTISET_OF, NullPolicy.NONE, subMultisetImplementor, false);
