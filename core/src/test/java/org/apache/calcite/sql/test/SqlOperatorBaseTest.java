@@ -5385,9 +5385,6 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
-    final String[] values = {"CAST(null AS multiset)", "cast(2 as multiset)"};
-//    tester.checkAgg("fusion(x)", values, Arrays.asList("[0, 2, 2]"), (double) 0);
-//    tester.checkBoolean("fusion(multiset[multiset[1]]) is not a set", Boolean.TRUE);
   }
 
   @Test public void testYear() {

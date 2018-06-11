@@ -1274,9 +1274,9 @@ Not implemented:
 | multiset IS NOT EMPTY | Whether *multiset* is NOT EMPTY.
 | multiset SUBMULTISET OF multiset2 | Whether *multiset* is a SUBMULTISET OF *multiset2*.
 | multiset NOT SUBMULTISET OF multiset2 | Whether *multiset* is NOT a SUBMULTISET OF *multiset2*.
-| multiset MULTISET UNION ( [ ALL &#124; DISTINCT ] multiset2) | Returns a union *multiset* and *multiset2*. If nor ALL nor DISTINCT is specified then ALL is default. 
-| multiset MULTISET INTERSECT ( [ ALL &#124; DISTINCT ] multiset2) | Returns a intersection of *multiset* and *multiset2*. If nor ALL nor DISTINCT is specified then ALL is default.
-| multiset MULTISET EXCEPT ( [ ALL &#124; DISTINCT ] multiset2) | Returns an except of *multiset* and *multiset2*. If nor ALL nor DISTINCT is specified then ALL is default.
+| multiset MULTISET UNION [ ALL &#124; DISTINCT ] multiset2 | Returns a union *multiset* and *multiset2*. If neither ALL nor DISTINCT is specified then ALL is default. 
+| multiset MULTISET INTERSECT [ ALL &#124; DISTINCT ] multiset2 | Returns a intersection of *multiset* and *multiset2*. If neither ALL nor DISTINCT is specified then ALL is default.
+| multiset MULTISET EXCEPT [ ALL &#124; DISTINCT ] multiset2 | Returns an except of *multiset* and *multiset2*. If neither ALL nor DISTINCT is specified then ALL is default.
 
 See also: UNNEST relational operator converts a collection to a relation.
 
