@@ -1957,7 +1957,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The FUSION operator. Multiset aggregator function.
    */
-  public static final SqlFunction FUSION =
+  public static final SqlAggFunction FUSION =
       new SqlAggFunction("FUSION", null,
           SqlKind.FUSION,
           ReturnTypes.ARG0,

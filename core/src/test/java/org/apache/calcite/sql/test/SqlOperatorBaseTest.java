@@ -5303,12 +5303,12 @@ public abstract class SqlOperatorBaseTest {
         "6",
         "INTEGER NOT NULL");
     tester.checkBoolean("(multiset['a', 'b', 'c'] "
-                    + "multiset union all multiset['c', 'd', 'e'])"
-                    + " submultiset of multiset['a', 'b', 'c', 'd', 'e']",
+                    + "multiset union all multiset['c', 'd', 'e']) "
+                    + "submultiset of multiset['a', 'b', 'c', 'd', 'e']",
         Boolean.FALSE);
     tester.checkBoolean("(multiset['a', 'b', 'c'] "
-                    + "multiset union distinct multiset['c', 'd', 'e'])"
-                    + " submultiset of multiset['a', 'b', 'c', 'd', 'e', 'c']",
+                    + "multiset union distinct multiset['c', 'd', 'e']) "
+                    + "submultiset of multiset['a', 'b', 'c', 'd', 'e', 'c']",
         Boolean.TRUE);
     tester.checkScalar(
         "multiset[cast(null as double)] multiset union all multiset[cast(null as double)]",
@@ -5385,6 +5385,9 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
+    final String[] values = {"CAST(null AS multiset)", "cast(2 as multiset)"};
+//    tester.checkAgg("fusion(x)", values, Arrays.asList("[0, 2, 2]"), (double) 0);
+//    tester.checkBoolean("fusion(multiset[multiset[1]]) is not a set", Boolean.TRUE);
   }
 
   @Test public void testYear() {

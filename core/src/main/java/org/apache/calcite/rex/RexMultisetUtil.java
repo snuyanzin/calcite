@@ -47,7 +47,9 @@ public class RexMultisetUtil {
           SqlStdOperatorTable.MULTISET_UNION_DISTINCT,
           SqlStdOperatorTable.MULTISET_UNION,
           SqlStdOperatorTable.IS_A_SET,
+          SqlStdOperatorTable.IS_NOT_A_SET,
           SqlStdOperatorTable.MEMBER_OF,
+          SqlStdOperatorTable.NOT_SUBMULTISET_OF,
           SqlStdOperatorTable.SUBMULTISET_OF);
 
   //~ Methods ----------------------------------------------------------------

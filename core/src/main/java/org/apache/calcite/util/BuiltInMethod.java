@@ -227,6 +227,7 @@ public enum BuiltInMethod {
   MAP_GET(Map.class, "get", Object.class),
   MAP_PUT(Map.class, "put", Object.class, Object.class),
   COLLECTION_ADD(Collection.class, "add", Object.class),
+  COLLECTION_ADDALL(Collection.class, "addAll", Collection.class),
   LIST_GET(List.class, "get", int.class),
   ITERATOR_HAS_NEXT(Iterator.class, "hasNext"),
   ITERATOR_NEXT(Iterator.class, "next"),

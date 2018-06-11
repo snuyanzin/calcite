@@ -49,6 +49,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -2167,7 +2168,7 @@ public class SqlFunctions {
     if (possibleSubMultiset.size() > multiset.size()) {
       return false;
     }
-    Collection multisetLocal = new ArrayList(multiset);
+    Collection multisetLocal = new LinkedList(multiset);
     for (Object element: possibleSubMultiset) {
       if (!multisetLocal.remove(element)) {
         return false;

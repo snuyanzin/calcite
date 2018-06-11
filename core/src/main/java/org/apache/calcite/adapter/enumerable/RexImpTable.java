@@ -130,6 +130,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FUSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
@@ -453,6 +454,7 @@ public class RexImpTable {
     aggMap.put(MAX, minMax);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
+    aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
     final Supplier<GroupingImplementor> grouping =
         constructorSupplier(GroupingImplementor.class);
     aggMap.put(GROUPING, grouping);
@@ -1292,6 +1294,28 @@ public class RexImpTable {
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_ADD.method,
                   add.arguments().get(0))));
+    }
+  }
+
+  /** Implementor for the {@code FUSION} aggregate function. */
+  static class FusionImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+                                                   AggResetContext reset) {
+      // acc[0] = new ArrayList();
+      reset.currentBlock().add(
+              Expressions.statement(
+                      Expressions.assign(reset.accumulator().get(0),
+                              Expressions.new_(ArrayList.class))));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+                                              AggAddContext add) {
+      // acc[0].add(arg);
+      add.currentBlock().add(
+              Expressions.statement(
+                      Expressions.call(add.accumulator().get(0),
+                              BuiltInMethod.COLLECTION_ADDALL.method,
+                              add.arguments().get(0))));
     }
   }
 
