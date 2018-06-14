@@ -6359,6 +6359,10 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testTimestampAdd() {
     tester.setFor(SqlStdOperatorTable.TIMESTAMP_ADD);
     tester.checkScalar(
+        "timestampadd(MICROSECOND, 2000000, timestamp '2016-02-24 12:42:25')",
+        "2016-02-24 12:42:27",
+        "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar(
         "timestampadd(SQL_TSI_SECOND, 2, timestamp '2016-02-24 12:42:25')",
         "2016-02-24 12:42:27",
         "TIMESTAMP(0) NOT NULL");
