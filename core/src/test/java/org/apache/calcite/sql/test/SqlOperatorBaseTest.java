@@ -1776,6 +1776,8 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
     tester.checkScalar("{fn SECOND(TIMESTAMP '2014-12-10 12:34:56')}", 56,
         "BIGINT NOT NULL");
+    tester.checkScalar("{fn MICROSECOND(TIMESTAMP '2014-12-10 12:34:56.123456')}", 123456,
+        "BIGINT NOT NULL");
     tester.checkScalar("{fn TIMESTAMPADD(HOUR, 5,"
         + " TIMESTAMP '2014-03-29 12:34:56')}",
         "2014-03-29 17:34:56", "TIMESTAMP(0) NOT NULL");
@@ -5349,6 +5351,19 @@ public abstract class SqlOperatorBaseTest {
         "56",
         "BIGINT NOT NULL");
     tester.checkNull("second(cast(null as timestamp))");
+  }
+
+  @Test public void testMicrosecond() {
+    tester.setFor(
+        SqlStdOperatorTable.MICROSECOND,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "microsecond(timestamp '2008-1-23 12:34:56.123456')",
+        "123456",
+        "BIGINT NOT NULL");
+    tester.checkNull("microsecond(cast(null as timestamp))");
   }
 
   @Test public void testExtractIntervalYearMonth() {

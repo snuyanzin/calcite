@@ -718,6 +718,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("HOUR", simple(SqlStdOperatorTable.HOUR));
       map.put("MINUTE", simple(SqlStdOperatorTable.MINUTE));
       map.put("SECOND", simple(SqlStdOperatorTable.SECOND));
+      map.put("MICROSECOND", simple(SqlStdOperatorTable.MICROSECOND));
 
       map.put("RTRIM",
           new SimpleMakeCall(SqlStdOperatorTable.TRIM) {

@@ -1761,6 +1761,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlDatePartFunction("SECOND", TimeUnit.SECOND);
 
   /**
+   * The SQL <code>MICROSECOND</code> operator. Returns the Microsecond
+   * from a DATETIME  E.g.<br>
+   * <code>MICROSECOND(timestamp '2008-9-23 01:23:45.123456')</code> returns <code>
+   * 123456</code>
+   */
+  public static final SqlDatePartFunction MICROSECOND =
+      new SqlDatePartFunction("MICROSECOND", TimeUnit.MICROSECOND);
+
+  /**
    * The ELEMENT operator, used to convert a multiset with only one item to a
    * "regular" type. Example ... log(ELEMENT(MULTISET[1])) ...
    */
