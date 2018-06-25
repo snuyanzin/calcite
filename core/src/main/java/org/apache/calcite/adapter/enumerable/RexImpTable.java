@@ -1996,6 +1996,8 @@ public class RexImpTable {
       case DAY:
       case DOW:
       case DOY:
+      case ISODOW:
+      case ISOYEAR:
       case WEEK:
         switch (sqlTypeName) {
         case INTERVAL_YEAR:
@@ -2051,6 +2053,14 @@ public class RexImpTable {
                       .longValue()));
         }
         break;
+      case MILLISECOND:
+        return Expressions.modulo(
+              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+      case MICROSECOND:
+        operand = Expressions.modulo(
+              operand, Expressions.constant(TimeUnit.MINUTE.multiplier.longValue()));
+        return Expressions.multiply(
+              operand, Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
       case EPOCH:
         switch (sqlTypeName) {
         case DATE:
@@ -2128,6 +2138,8 @@ public class RexImpTable {
       return TimeUnit.HOUR.multiplier.longValue();
     case SECOND:
       return TimeUnit.MINUTE.multiplier.longValue();
+    case MILLISECOND:
+      return TimeUnit.SECOND.multiplier.longValue();
     case MONTH:
       return TimeUnit.YEAR.multiplier.longValue();
     case QUARTER:
