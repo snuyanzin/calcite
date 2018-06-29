@@ -495,6 +495,7 @@ public class SqlParserTest {
       "TIMEZONE_MINUTE",               "92", "99", "2003", "2011", "2014", "c",
       "TINYINT",                                                           "c",
       "TO",                            "92", "99", "2003", "2011", "2014", "c",
+      "TO_CHAR",                                                           "c",
       "TRAILING",                      "92", "99", "2003", "2011", "2014", "c",
       "TRANSACTION",                   "92", "99",
       "TRANSLATE",                     "92",               "2011", "2014", "c",

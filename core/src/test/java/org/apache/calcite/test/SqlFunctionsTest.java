@@ -115,6 +115,15 @@ public class SqlFunctionsTest {
     assertNull(greater((String) null, null));
   }
 
+
+  @Test public void test1() {
+    System.out.println(SqlFunctions.numericToChar(12, "0000000000"));
+    System.out.println(SqlFunctions.numericToChar(12, "000"));
+    System.out.println(SqlFunctions.numericToChar(12, "000"));
+    System.out.println(SqlFunctions.numericToChar(12, "00"));
+    System.out.println(SqlFunctions.numericToChar(12, "0"));
+  }
+
   /** Test for {@link SqlFunctions#rtrim}. */
   @Test public void testRtrim() {
     assertEquals("", rtrim(""));

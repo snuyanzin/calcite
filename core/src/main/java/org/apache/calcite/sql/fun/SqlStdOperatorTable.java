@@ -51,6 +51,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -1326,6 +1327,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0_NULLABLE,
           null,
           OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
+  public static final SqlFunction TO_CHAR =
+      new SqlFunction(
+          "TO_CHAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG1_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction LOWER =

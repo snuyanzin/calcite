@@ -179,7 +179,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
@@ -208,6 +207,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM0;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SYSTEM_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRUNCATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
@@ -255,6 +255,9 @@ public class RexImpTable {
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
+
+    final ToCharImplementor toCharImplementor = new ToCharImplementor();
+    defineImplementor(TO_CHAR, NullPolicy.STRICT, toCharImplementor, false);
 
     // logical
     defineBinary(AND, AndAlso, NullPolicy.AND, null);
@@ -458,7 +461,6 @@ public class RexImpTable {
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
     winAggMap.put(FIRST_VALUE,
         constructorSupplier(FirstValueImplementor.class));
-    winAggMap.put(NTH_VALUE, constructorSupplier(NthValueImplementor.class));
     winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
     winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
     winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
@@ -1740,6 +1742,49 @@ public class RexImpTable {
               || flag == SqlTrimFunction.Flag.TRAILING),
           translatedOperands.get(1),
           translatedOperands.get(2));
+    }
+  }
+
+  /** Implementor for the {@code TO_CHAR} function. */
+  private static class ToCharImplementor implements NotNullImplementor {
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+                                List<Expression> translatedOperands) {
+
+      SqlTypeName sqlTypeName = call.operands.get(0).getType().getSqlTypeName();
+
+      System.out.println("sqlTypeName " + sqlTypeName);
+      System.out.println("translatedOperands.get(0) " + translatedOperands.get(0));
+      switch (sqlTypeName) {
+      case DATE:
+      case TIME:
+      case TIMESTAMP:
+        return Expressions.call(
+            BuiltInMethod.UNIX_DATE_TO_FORMATTED_STRING.method,
+            call.operands.get(0).getType().getSqlTypeName() == SqlTypeName.DATE
+                ? Expressions.multiply(
+                    Expressions.constant(DateTimeUtils.MILLIS_PER_DAY), translatedOperands.get(0))
+                : call.operands.get(0).getType().getSqlTypeName() == SqlTypeName.TIME
+                    ? Expressions.add(
+                        Expressions.multiply(
+                            Expressions.constant(DateTimeUtils.MILLIS_PER_DAY),
+                                Expressions.call(BuiltInMethod.CURRENT_DATE.method,
+                                    translator.getRoot())),
+                        translatedOperands.get(0))
+                    : translatedOperands.get(0),
+            translatedOperands.get(1));
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+      case BIGINT:
+      case DECIMAL:
+      case FLOAT:
+      case REAL:
+      case DOUBLE:
+        return Expressions.call(BuiltInMethod.INT_TO_STRING.method,
+            translatedOperands.get(0), translatedOperands.get(1));
+      }
+      System.out.println("out switch");
+      return Expressions.call(translatedOperands.get(0), BuiltInMethod.OBJECT_TO_STRING.method);
     }
   }
 

@@ -2189,6 +2189,144 @@ public class SqlFunctions {
     return resultCollection;
   }
 
+  public static String numericToChar(int number, String pattern) {
+    System.out.println("pattern " + pattern);
+    System.out.println("number " + number);
+    if (pattern == null || pattern.isEmpty()) {
+      return String.valueOf(number);
+    }
+    boolean pointParsed = false;
+    int length = pattern.length();
+    StringBuilder result = new StringBuilder();
+    int stringsize = stringSize(number);
+    System.out.println("stringsize " + stringsize);
+    for (int startPosition = 0; startPosition < length; startPosition++) {
+      int endPosition = getTokenEndPosition(pattern, startPosition);
+      int tokenLen = endPosition - startPosition + 1;
+      if (tokenLen <= 0) {
+        break;
+      }
+      char c = pattern.charAt(startPosition);
+      int oldStartPosition = startPosition;
+      startPosition += tokenLen - 1;
+      System.out.println("startPosition " + startPosition);
+      System.out.println("oldStartPosition " + oldStartPosition);
+      System.out.println("tokenLen " + tokenLen);
+      switch (c) {
+      case '0':
+      case '9':
+        int i = oldStartPosition;
+        int zeros = 0;
+        while (i < length && (pattern.charAt(i) == '0' || pattern.charAt(i) == '9')) {
+          if (pattern.charAt(i) == '0') {
+            zeros++;
+          }
+          i++;
+        }
+
+        System.out.println("c " + c);
+        if (i - oldStartPosition + 1 < stringsize) {
+          fillWithOverflow(result, i - oldStartPosition + 1);
+        } else {
+          for (int j = 0; j < i - oldStartPosition + 1 - stringsize; j++) {
+            result.append('0');
+          }
+          result.append(number);
+        }
+        break;
+      /*case '0':
+        System.out.println("c " + c);
+        if (tokenLen < stringsize) {
+          fillWithOverflow(result, tokenLen);
+        } else if (tokenLen == stringsize) {
+          result.append(0);
+        } else if (tokenLen > stringsize) {
+          for (int i = 0; i < tokenLen - stringsize; i++) {
+            result.append(c);
+          }
+          result.append(number);
+        }
+        break;*/
+      case '.':
+        System.out.println("c " + c);
+        if (pointParsed) {
+          throw new IllegalArgumentException("multiple decimal points");
+        }
+        pointParsed = true;
+        result.append('.');
+        break;
+      default:
+        throw new IllegalArgumentException("Illegal pattern component: "
+            + pattern.substring(oldStartPosition,
+                oldStartPosition + tokenLen > length
+                    ? length
+                    : oldStartPosition + tokenLen));
+      }
+    }
+    return result.toString();
+  }
+
+  private static void fillWithOverflow(StringBuilder stringBuilder, int tokenLen) {
+    for (int i = 0; i < tokenLen; i++) {
+      stringBuilder.append('#');
+    }
+  }
+
+  private static int stringSize(int x) {
+    int d = 1;
+    if (x >= 0) {
+      d = 0;
+      x = -x;
+    }
+    int p = -10;
+    for (int i = 1; i < 10; i++) {
+      if (x > p) {
+        return i + d;
+      }
+      p = 10 * p;
+    }
+    return 10 + d;
+  }
+
+  public static int getTokenEndPosition(String pattern, int indexRef) {
+    int i = indexRef;
+    int length = pattern.length();
+
+    char c = pattern.charAt(i);
+    if (c == '0' || c == '9' || c == '.' || c == 'D' || c == 'S' || c == 'M' || c == ',') {
+      // Scan a run of the same character
+      while (i + 1 < length) {
+        char peek = pattern.charAt(i + 1);
+        if (peek == c) {
+          i++;
+        } else {
+          break;
+        }
+      }
+    } else {
+      // This will identify token as text.
+      boolean inLiteral = false;
+
+      for (; i < length; i++) {
+        c = pattern.charAt(i);
+        if (c == '\"') {
+          if (i + 1 < length && pattern.charAt(i + 1) == '\"') {
+            // "" is treated as escaped "
+            i++;
+          } else {
+            inLiteral = !inLiteral;
+          }
+        } else if (!inLiteral
+            && ((c == '0' || c == '9' || c == '.' || c == 'D'
+                || c == 'S' || c == 'M' || c == ','))) {
+          i--;
+          break;
+        }
+      }
+    }
+    return i;
+  }
+
   public static Function1<Object, Enumerable<ComparableList<Comparable>>> flatProduct(
       final int[] fieldCounts, final boolean withOrdinality,
       final FlatProductInputType[] inputTypes) {
