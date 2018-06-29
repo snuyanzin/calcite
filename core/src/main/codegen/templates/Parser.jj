@@ -5967,6 +5967,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <CHARACTER_LENGTH>
     |   <COALESCE>
     |   <COLLECT>
+    |   <CORR>
     |   <COVAR_POP>
     |   <COVAR_SAMP>
     |   <CUME_DIST>
@@ -6002,8 +6003,14 @@ SqlIdentifier ReservedFunctionName() :
     |   <PERCENT_RANK>
     |   <POWER>
     |   <RANK>
+    |   <REGR_AVGX>
+    |   <REGR_AVGY>
     |   <REGR_COUNT>
+    |   <REGR_INTERCEPT>
+    |   <REGR_R2>
+    |   <REGR_SLOPE>
     |   <REGR_SXX>
+    |   <REGR_SXY>
     |   <REGR_SYY>
     |   <RIGHT>
     |   <ROW_NUMBER>
