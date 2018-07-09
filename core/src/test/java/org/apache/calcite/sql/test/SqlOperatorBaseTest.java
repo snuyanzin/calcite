@@ -1911,6 +1911,8 @@ public abstract class SqlOperatorBaseTest {
       tester.checkScalar("{fn MONTHNAME(date)}", null, "");
     }
     tester.checkType("{fn NOW()}", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("{fn CENTURY(DATE '2014-12-10')}", "21",
+                        "BIGINT NOT NULL");
     tester.checkScalar("{fn QUARTER(DATE '2014-12-10')}", "4",
         "BIGINT NOT NULL");
     tester.checkScalar("{fn SECOND(TIMESTAMP '2014-12-10 12:34:56')}", 56,
@@ -5539,7 +5541,18 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
   }
+  @Test public void testCentury() {
+    tester.setFor(
+                        SqlStdOperatorTable.CENTURY,
+                        VM_FENNEL,
+                        VM_JAVA);
 
+    tester.checkScalar(
+                                "CENTURY(date '2008-1-23')",
+                                "21",
+                                "BIGINT NOT NULL");
+    tester.checkNull("century(cast(null as date))");
+  }
   @Test public void testYear() {
     tester.setFor(
         SqlStdOperatorTable.YEAR,
