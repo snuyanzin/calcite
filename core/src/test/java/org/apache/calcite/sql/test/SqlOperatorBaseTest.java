@@ -1924,6 +1924,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("{fn WEEK(DATE '2014-12-10')}",
         "cannot translate call EXTRACT.*",
         true);
+    tester.checkScalar("{fn MILLENNIUM(DATE '1996-12-10')}", 2, "BIGINT NOT NULL");
+    tester.checkScalar("{fn MILLENNIUM(DATE '2014-12-10')}", 3, "BIGINT NOT NULL");
     tester.checkScalar("{fn YEAR(DATE '2014-12-10')}", 2014, "BIGINT NOT NULL");
 
     // System Functions
@@ -5538,6 +5540,19 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
+  }
+
+  @Test public void testMillennium() {
+    tester.setFor(
+         SqlStdOperatorTable.MILLENNIUM,
+         VM_FENNEL,
+         VM_JAVA);
+
+    tester.checkScalar(
+         "millennium(date '2008-1-23')",
+         "3",
+         "BIGINT NOT NULL");
+    tester.checkNull("millennium(cast(null as date))");
   }
 
   @Test public void testYear() {

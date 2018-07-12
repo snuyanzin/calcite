@@ -1716,6 +1716,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction EXTRACT = new SqlExtractFunction();
 
   /**
+   * The SQL <code>MILLENNIUM</code> operator. Returns the Millennium
+   * from a DATETIME  E.g.<br>
+   * <code>MILLENNIUM(date '2008-9-23')</code> returns <code>
+   * 3</code>
+   * The third millennium started January 1, 2001.
+   */
+  public static final SqlDatePartFunction MILLENNIUM =
+          new SqlDatePartFunction("MILLENNIUM", TimeUnit.MILLENNIUM);
+
+  /**
    * The SQL <code>YEAR</code> operator. Returns the Year
    * from a DATETIME  E.g.<br>
    * <code>YEAR(date '2008-9-23')</code> returns <code>
