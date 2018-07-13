@@ -1517,8 +1517,7 @@ public class RexImpTable {
     @Override protected void implementNotNullAdd(WinAggContext info,
         WinAggAddContext add) {
       Expression acc = add.accumulator().get(0);
-
-      BlockBuilder builder = add.nestBlock();
+      Expression partitionRowCount = add.getPartitionRowCount();
       add.currentBlock().add(
           Expressions.statement(
               Expressions.assign(acc,
@@ -1526,12 +1525,8 @@ public class RexImpTable {
                       Expressions.multiply(
                           Expressions.constant(1.0),
                           Expressions.add(add.endIndex(), Expressions.constant(1))),
-                          Expressions.constant(add.getPartitionRowCount())))));
+                          partitionRowCount))));
       add.exitBlock();
-      add.currentBlock().add(
-          Expressions.ifThen(
-              Expressions.greaterThan(add.currentPosition(), add.startIndex()),
-                  builder.toBlock()));
     }
   }
 
