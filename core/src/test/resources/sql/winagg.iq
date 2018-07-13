@@ -455,4 +455,67 @@ from emp order by emp."ENAME";
 
 !ok
 
+# PERCENT_RANK
+select emp."DEPTNO", 
+ (rank() over w1 - 1) as "rank - 1",
+ (count(*) over() - 1) as "count - 1",
+ percent_rank() over w1 as "percent_rank",
+ (rank() over w2 - 1) as "rank - 1",
+ (count(*) over(partition by deptno) - 1 ) as "count - 1",
+ percent_rank() over w2 as "percent_rank",
+ gender,
+ (rank() over w3 - 1) as "rank - 1",
+ (count(*) over(partition by gender) - 1 ) as "count - 1",
+ percent_rank() over w3 as "percent_rank"
+from emp
+  window w1 as (order by deptno),
+  w2 as (partition by deptno order by deptno),
+  w3 as (partition by gender order by deptno)
+order by deptno;
++--------+----------+-----------+--------------+----------+-----------+--------------+--------+----------+-----------+---------------------+
+| DEPTNO | rank - 1 | count - 1 | percent_rank | rank - 1 | count - 1 | percent_rank | GENDER | rank - 1 | count - 1 | percent_rank        |
++--------+----------+-----------+--------------+----------+-----------+--------------+--------+----------+-----------+---------------------+
+|     10 |        0 |         8 |          0.0 |        0 |         1 |          0.0 | F      |        0 |         5 |                 0.0 |
+|     10 |        0 |         8 |          0.0 |        0 |         1 |          0.0 | M      |        0 |         2 |                 0.0 |
+|     20 |        2 |         8 |         0.25 |        0 |         0 |          0.0 | M      |        1 |         2 |                 0.5 |
+|     30 |        3 |         8 |        0.375 |        0 |         1 |          0.0 | F      |        1 |         5 | 0.19999999999999996 |
+|     30 |        3 |         8 |        0.375 |        0 |         1 |          0.0 | F      |        1 |         5 | 0.19999999999999996 |
+|     50 |        5 |         8 |        0.625 |        0 |         1 |          0.0 | F      |        3 |         5 |  0.6000000000000001 |
+|     50 |        5 |         8 |        0.625 |        0 |         1 |          0.0 | M      |        2 |         2 |                 1.0 |
+|     60 |        7 |         8 |        0.875 |        0 |         0 |          0.0 | F      |        4 |         5 |                 0.8 |
+|        |        8 |         8 |          1.0 |        0 |         0 |          0.0 | F      |        5 |         5 |                 1.0 |
++--------+----------+-----------+--------------+----------+-----------+--------------+--------+----------+-----------+---------------------+
+(9 rows)
+
+!ok
+
+# CUME_DIST
+select emp."ENAME", emp."DEPTNO", gender,
+ dense_rank() over(order by deptno) as "dense_rank",
+ cume_dist() over(order by deptno) as "cume_dist",
+ (rank() over(order by deptno) - 1) as "rank - 1",
+ (count(*) over() - 1 ) as "count - 1",
+ percent_rank() over(order by deptno) as "percent_rank",
+ row_number() over(order by deptno) as "rn",
+ cume_dist() over(partition by deptno order by deptno) as "percent_rank0",
+ percent_rank() over(partition by deptno order by ename) as "percent_rank1",
+ percent_rank() over(partition by gender order by deptno) as "percent_rank2",
+ percent_rank() over(partition by ename order by deptno) as "percent_rank3"
+from emp order by deptno, emp."ENAME";
++-------+--------+-------------+--------------+-------------+--------------+-------------+
+| ENAME | DEPTNO | first_value | second_value | fifth_value | eighth_value | tenth_value |
++-------+--------+-------------+--------------+-------------+--------------+-------------+
+| Adam  |     50 |          10 |           10 |          30 |           60 |             |
+| Alice |     30 |          10 |           10 |          30 |           60 |             |
+| Bob   |     10 |          10 |           10 |          30 |           60 |             |
+| Eric  |     20 |          10 |           10 |          30 |           60 |             |
+| Eve   |     50 |          10 |           10 |          30 |           60 |             |
+| Grace |     60 |          10 |           10 |          30 |           60 |             |
+| Jane  |     10 |          10 |           10 |          30 |           60 |             |
+| Susan |     30 |          10 |           10 |          30 |           60 |             |
+| Wilma |        |          10 |           10 |          30 |           60 |             |
++-------+--------+-------------+--------------+-------------+--------------+-------------+
+(9 rows)
+
+!ok
 # End winagg.iq
