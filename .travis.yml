@@ -33,11 +33,13 @@ branches:
     - /^[0-9]+-.*$/
 env:
   global:
-  - DOCKERRUN="docker run -it --rm -v $PWD:/src -v $HOME/.m2:/root/.m2 -w /src"
+  - DOCKERRUN="docker run -it --rm -v $PWD:/src -v $HOME/.m2:/root/.m2 -w /src"  
+  - secure: "DqoCj2vHVC31Wr+hjTj21q38sPO/DPcYYnR1chPRXvOLzz4a9muf+89PZc3seZnbiGRyMcGhSHlm174l33rYicdJdWBhoqSjfmuYu9rFq9n3ev1Xs/sT7uC78E9ehnoXYciE5KxeefitRrA0KJ6rVIe/v9YY3HeXiQNryzXStPBbWB3MCfNmZCixr+RhRd7JadmGnC1Dlcjeq82pIgJ65yAiJ1gml5Lf0fXfZoAOWIgl4cutMCiZ0t18eaL5ReeFTCkfKahaSTOHayHGos+HzKV2fcGcEFJWsbVroDoyBezP3CIgnh5cjGO63OBQR6wpjuconziVzpBFOEw7CBk1iN+cyow9NLUyZtEUmxDnLUDBexg9xqmJA67vkY4d2MFGduZCPE1rDxR4mRHC9cm83FAfmfUIBph0BL5yMSUfGz9cm0ciCNHmjCrkMkkKFymHClCmO8oKQpAOgEK4xJbfMi7bmKKqmofnqZXBQDB+bGQi1XThdKG8HMxEOqY+Sohsmo03DMOQY4dRfSyd9aXgcS551ijiGaPZTLunqcmVlXiIKsSwtzI7YCQLfiXmSGiSuGSlTasb2dTlAzFf2al0zAjCf5iOGubRQl6zFBuZR7Ju059tXOAm4aDvI1nVayy9RSFb76D51M76/krI+A9jxiEZxz84WibaUZMrBbrPKJs="
 services:
   - docker
 before_install:
   - docker pull $IMAGE
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 install:
   # Print the Maven version, skip tests and javadoc
   - $DOCKERRUN $IMAGE mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit -B -V
@@ -51,4 +53,12 @@ sudo: required
 cache:
   directories:
     - $HOME/.m2
+addons:
+  coverity_scan:
+    project:
+      name: "snuyanzin/calcite"
+      description: "<Your project description here>"
+    notification_email: snuyanzin@gmail.com    
+    build_command: "mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit -B -V"
+    branch_pattern: coverity_scan    
 # End .travis.yml
