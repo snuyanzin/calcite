@@ -4986,6 +4986,7 @@ SqlNode NamedFunctionCall() :
     final Span filterSpan;
     final SqlNode filter;
     final SqlNode over;
+    boolean nullTreatment = false;
     SqlLiteral quantifier = null;
 }
 {
@@ -5014,9 +5015,32 @@ SqlNode NamedFunctionCall() :
             args.remove(0);
         }
     )
+    [
+        LOOKAHEAD(2) <IGNORE> <NULLS> {
+            nullTreatment = true;
+        }
+    |
+        LOOKAHEAD(2) <RESPECT> <NULLS> {
+            nullTreatment = false;
+        }
+    ]
     {
-        call = createCall(qualifiedName, s.end(this), funcType, quantifier,
-            args);
+        SqlOperator op = null;
+        if (nullTreatment) {
+            switch (qualifiedName.getSimple()) {
+               case "FIRST_VALUE":
+                   op = SqlStdOperatorTable.FIRST_VALUE_IGNORE_NULLS;
+                   break;
+               case "LAST_VALUE":
+                   op = SqlStdOperatorTable.LAST_VALUE_IGNORE_NULLS;
+                   break;
+            }
+        }
+        if (op == null) {
+          call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
+        } else {
+          call = op.createCall(s.end(this), args);
+        }
     }
     [
         <FILTER> { filterSpan = span(); }
@@ -5043,7 +5067,6 @@ SqlNode NamedFunctionCall() :
         return call;
     }
 }
-
 
 /*
 * Parse Floor/Ceil function parameters
@@ -5688,6 +5711,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < HOLD: "HOLD" >
 |   < HOUR: "HOUR" >
 |   < IDENTITY: "IDENTITY" >
+|   < IGNORE: "IGNORE" >
 |   < IMMEDIATE: "IMMEDIATE" >
 |   < IMMEDIATELY: "IMMEDIATELY" >
 |   < IMPLEMENTATION: "IMPLEMENTATION" >
@@ -5887,6 +5911,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < REPEATABLE: "REPEATABLE" >
 |   < REPLACE: "REPLACE" >
 |   < RESET: "RESET" >
+|   < RESPECT: "RESPECT" >
 |   < RESTART: "RESTART" >
 |   < RESTRICT: "RESTRICT" >
 |   < RESULT: "RESULT" >
@@ -6224,6 +6249,7 @@ String CommonNonReservedKeyWord() :
     |   <GOTO>
     |   <GRANTED>
     |   <HIERARCHY>
+    |   <IGNORE>
     |   <IMMEDIATE>
     |   <IMMEDIATELY>
     |   <IMPLEMENTATION>
@@ -6304,6 +6330,7 @@ String CommonNonReservedKeyWord() :
     |   <RELATIVE>
     |   <REPEATABLE>
     |   <REPLACE>
+    |   <RESPECT>
     |   <RESTART>
     |   <RESTRICT>
     |   <RETURNED_CARDINALITY>

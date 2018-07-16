@@ -861,6 +861,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFirstLastValueAggFunction(SqlKind.LAST_VALUE);
 
   /**
+   * <code>LAST_VALUE</code> aggregate function.
+   */
+  public static final SqlAggFunction LAST_VALUE_IGNORE_NULLS =
+      new SqlFirstLastValueAggFunction(SqlKind.LAST_VALUE_IGNORE_NULLS, true);
+
+  /**
    * <code>ANY_VALUE</code> aggregate function.
    */
   public static final SqlAggFunction ANY_VALUE =
@@ -871,6 +877,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAggFunction FIRST_VALUE =
       new SqlFirstLastValueAggFunction(SqlKind.FIRST_VALUE);
+
+  /**
+   * <code>FIRST_VALUE</code> aggregate function.
+   */
+  public static final SqlAggFunction FIRST_VALUE_IGNORE_NULLS =
+      new SqlFirstLastValueAggFunction(SqlKind.FIRST_VALUE_IGNORE_NULLS, true);
 
   /**
    * <code>NTH_VALUE</code> aggregate function.

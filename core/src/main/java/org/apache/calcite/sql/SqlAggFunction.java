@@ -34,6 +34,7 @@ import java.util.List;
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;
   private final boolean requiresOver;
+  private final boolean ignoreNulls;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -65,6 +66,20 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
         operandTypeChecker, funcType, false, false);
   }
 
+  protected SqlAggFunction(
+          String name,
+          SqlIdentifier sqlIdentifier,
+          SqlKind kind,
+          SqlReturnTypeInference returnTypeInference,
+          SqlOperandTypeInference operandTypeInference,
+          SqlOperandTypeChecker operandTypeChecker,
+          SqlFunctionCategory funcType,
+          boolean requiresOrder,
+          boolean requiresOver) {
+    this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
+        operandTypeChecker, funcType, requiresOrder, requiresOver, false);
+  }
+
   /** Creates a built-in or user-defined SqlAggFunction or window function.
    *
    * <p>A user-defined function will have a value for {@code sqlIdentifier}; for
@@ -78,11 +93,13 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
-      boolean requiresOver) {
+      boolean requiresOver,
+      boolean ignoreNulls) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
+    this.ignoreNulls = ignoreNulls;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -114,6 +131,10 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   @Override public final boolean requiresOver() {
     return requiresOver;
+  }
+
+  @Override public final boolean ignoreNulls() {
+    return ignoreNulls;
   }
 
   @Deprecated // to be removed before 2.0

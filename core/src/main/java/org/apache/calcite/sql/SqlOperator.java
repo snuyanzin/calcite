@@ -770,6 +770,10 @@ public abstract class SqlOperator {
     return false;
   }
 
+  public boolean ignoreNulls() {
+    return false;
+  }
+
   /**
    * Returns whether this is a window function that requires ordering.
    *
@@ -781,6 +785,10 @@ public abstract class SqlOperator {
    */
   public boolean requiresOrder() {
     return false;
+  }
+
+  public SqlKind getNullTreatment() {
+    return SqlKind.RESPECT_NULLS;
   }
 
   /**

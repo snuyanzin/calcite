@@ -3958,6 +3958,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     winSql("select ^nth_value(sal, 2)^\n"
         + "from emp")
         .fails("OVER clause is necessary for window functions");
+
+    winSql("select ^first_value(sal)^\n"
+        + "from emp")
+        .fails("OVER clause is necessary for window functions");
   }
 
   @Test public void testOverInPartitionBy() {
@@ -7680,9 +7684,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testLastFunction() {
     check("select LAST_VALUE(sal) over (order by empno) from emp");
     check("select LAST_VALUE(ename) over (order by empno) from emp");
+    check("select LAST_VALUE(ename) ignore nulls over (order by empno) from emp");
+    check("select LAST_VALUE(ename) respect nulls over (order by empno) from emp");
 
     check("select FIRST_VALUE(sal) over (order by empno) from emp");
     check("select FIRST_VALUE(ename) over (order by empno) from emp");
+    check("select FIRST_VALUE(ename) ignore nulls over (order by empno) from emp");
+    check("select FIRST_VALUE(ename) respect nulls over (order by empno) from emp");
 
     check("select NTH_VALUE(sal, 2) over (order by empno) from emp");
     check("select NTH_VALUE(ename, 2) over (order by empno) from emp");

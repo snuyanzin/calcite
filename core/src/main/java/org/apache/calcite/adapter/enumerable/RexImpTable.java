@@ -129,6 +129,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE_IGNORE_NULLS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FUSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
@@ -150,6 +151,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE_IGNORE_NULLS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
@@ -458,8 +460,11 @@ public class RexImpTable {
     winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
     winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
     winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
-    winAggMap.put(FIRST_VALUE,
-        constructorSupplier(FirstValueImplementor.class));
+    winAggMap.put(FIRST_VALUE, constructorSupplier(FirstValueImplementor.class));
+    winAggMap.put(FIRST_VALUE_IGNORE_NULLS,
+        constructorSupplier(FirstValueIgnoreNullsImplementor.class));
+    winAggMap.put(LAST_VALUE_IGNORE_NULLS,
+        constructorSupplier(LastValueIgnoreNullsImplementor.class));
     winAggMap.put(NTH_VALUE, constructorSupplier(NthValueImplementor.class));
     winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
     winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
@@ -1502,11 +1507,82 @@ public class RexImpTable {
         AggResultContext result) {
       WinAggResultContext winResult = (WinAggResultContext) result;
 
-      return Expressions.condition(winResult.hasRows(),
-          winResult.rowTranslator(
-              winResult.computeIndex(Expressions.constant(0), seekType))
-              .translate(winResult.rexArguments().get(0), info.returnType()),
-          getDefaultValue(info.returnType()));
+      Expression condition = Expressions.condition(winResult.hasRows(),
+              winResult.rowTranslator(
+                      winResult.computeIndex(Expressions.constant(0), seekType))
+                      .translate(winResult.rexArguments().get(0), info.returnType()),
+              getDefaultValue(info.returnType()));
+
+      return condition;
+    }
+
+    protected SeekType getSeekType() {
+      return seekType;
+    }
+  }
+
+  /** Implementor for the {@code FIRST_VALUE} windowed aggregate function. */
+  static class FirstValueIgnoreNullsImplementor extends FirstLastValueIgnoreNullsImplementor {
+    protected FirstValueIgnoreNullsImplementor() {
+      super(SeekType.START);
+    }
+  }
+
+  /** Implementor for the {@code LAST_VALUE} windowed aggregate function. */
+  static class LastValueIgnoreNullsImplementor extends FirstLastValueIgnoreNullsImplementor {
+    protected LastValueIgnoreNullsImplementor() {
+      super(SeekType.END);
+    }
+  }
+
+  /** Implementor for the {@code FIRST_VALUE} windowed aggregate function. */
+  static class FirstLastValueIgnoreNullsImplementor extends FirstLastValueImplementor {
+
+    protected FirstLastValueIgnoreNullsImplementor(SeekType seekType) {
+      super(seekType);
+    }
+
+    @Override public Expression implementResult(AggContext info, AggResultContext result) {
+      WinAggResultContext winResult = (WinAggResultContext) result;
+      BlockBuilder currentBlock = result.currentBlock();
+      boolean isFirst = getSeekType() == SeekType.START;
+      ParameterExpression firstLastValue = Expressions.parameter(0, info.returnType(),
+          currentBlock.newName(isFirst ? "first" : "last"));
+      ParameterExpression dstIndex =
+          Expressions.parameter(int.class, currentBlock.newName("dstIndex"));
+
+      currentBlock.add(Expressions.declare(0, dstIndex, null));
+      currentBlock.add(Expressions.declare(0, firstLastValue, null));
+      currentBlock.add(
+          Expressions.statement(
+              Expressions.assign(dstIndex, Expressions.constant(0))));
+      currentBlock.add(
+          Expressions.statement(
+              Expressions.assign(firstLastValue, getDefaultValue(info.returnType()))));
+      final BlockBuilder whileBlock = new BlockBuilder();
+      whileBlock.add(
+          Expressions.statement(
+              Expressions.assign(firstLastValue,
+                  winResult.rowTranslator(
+                      winResult.computeIndex(dstIndex, getSeekType()))
+                          .translate(winResult.rexArguments().get(0),
+                  info.returnType()))));
+      whileBlock.add(
+          Expressions.statement(
+              isFirst
+                  ? Expressions.preIncrementAssign(dstIndex)
+                  : Expressions.preDecrementAssign(dstIndex)));
+
+      Expression isNullAndIndexLessThanSize =
+          Expressions.and(winResult.hasRows(),
+          Expressions.and(
+              Expressions.equal(firstLastValue, Expressions.constant(null, info.returnType())),
+              Expressions.lessThan(dstIndex, winResult.getPartitionRowCount())));
+      currentBlock.add(
+          Expressions.while_(isNullAndIndexLessThanSize, whileBlock.toBlock()));
+
+      result.exitBlock();
+      return firstLastValue;
     }
   }
 

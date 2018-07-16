@@ -39,6 +39,10 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlFirstLastValueAggFunction(SqlKind kind) {
+    this(kind, false);
+  }
+
+  public SqlFirstLastValueAggFunction(SqlKind kind, boolean ignoreNulls) {
     super(
         kind.name(),
         null,
@@ -48,9 +52,12 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
         OperandTypes.ANY,
         SqlFunctionCategory.NUMERIC,
         false,
-        true);
+        true,
+        ignoreNulls);
     Preconditions.checkArgument(kind == SqlKind.FIRST_VALUE
-        || kind == SqlKind.LAST_VALUE);
+        || kind == SqlKind.LAST_VALUE
+        || kind == SqlKind.FIRST_VALUE_IGNORE_NULLS
+        || kind == SqlKind.LAST_VALUE_IGNORE_NULLS);
   }
 
   @Deprecated // to be removed before 2.0
