@@ -1924,6 +1924,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("{fn WEEK(DATE '2014-12-10')}",
         "cannot translate call EXTRACT.*",
         true);
+    tester.checkScalar("{fn DOW(DATE '2014-12-10')}", 4, "BIGINT NOT NULL");
     tester.checkScalar("{fn YEAR(DATE '2014-12-10')}", 2014, "BIGINT NOT NULL");
 
     // System Functions

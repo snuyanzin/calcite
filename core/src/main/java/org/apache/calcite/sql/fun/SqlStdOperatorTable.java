@@ -1714,6 +1714,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CAST = new SqlCastFunction();
 
   /**
+   * The SQL <code>DOW</code> operator. Returns the DOW
+   * from a DATETIME  E.g.<br>
+   * <code>DOW(date '2008-9-23')</code> returns <code>
+   * 3</code>
+   */
+  public static final SqlFunction DOW =
+          new SqlDatePartFunction("DOW", TimeUnit.DOW);
+
+  /**
    * The SQL <code>EXTRACT</code> operator. Extracts a specified field value
    * from a DATETIME or an INTERVAL. E.g.<br>
    * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>
