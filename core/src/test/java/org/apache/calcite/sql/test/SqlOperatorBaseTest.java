@@ -1911,6 +1911,16 @@ public abstract class SqlOperatorBaseTest {
       tester.checkScalar("{fn MONTHNAME(date)}", null, "");
     }
     tester.checkType("{fn NOW()}", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("{fn EPOCH(DATE '2008-1-23')}", "1201046400",
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn EPOCH(DATE '0001-1-1')}", "-62135596800",
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn EPOCH(TIMESTAMP '2008-1-23 00:00:00')}", "1201046400",
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn EPOCH(TIMESTAMP '2008-1-23 12:34:56')}", "1201091696",
+        "BIGINT NOT NULL");
+    tester.checkScalar("{fn EPOCH(TIMESTAMP '1970-01-01 00:00:00')}", "0",
+        "BIGINT NOT NULL");
     tester.checkScalar("{fn QUARTER(DATE '2014-12-10')}", "4",
         "BIGINT NOT NULL");
     tester.checkScalar("{fn SECOND(TIMESTAMP '2014-12-10 12:34:56')}", 56,
@@ -5538,6 +5548,35 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
+  }
+
+  @Test public void testEpoch() {
+    tester.setFor(
+        SqlStdOperatorTable.EPOCH,
+        VM_FENNEL,
+        VM_JAVA);
+
+    tester.checkScalar(
+        "epoch(date '2008-1-23')",
+        "1201046400",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "epoch(date '0001-1-1')",
+        "-62135596800",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "epoch(timestamp '2008-1-23 00:00:00')",
+        "1201046400",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "epoch(timestamp '2008-1-23 12:34:56')",
+        "1201091696",
+        "BIGINT NOT NULL");
+    tester.checkScalar(
+        "epoch(timestamp '1970-01-01 00:00:00')",
+        "0",
+        "BIGINT NOT NULL");
+    tester.checkNull("year(cast(null as date))");
   }
 
   @Test public void testYear() {

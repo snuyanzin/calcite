@@ -708,6 +708,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
                   operands[0]);
             }
           });
+      map.put("EPOCH", simple(SqlStdOperatorTable.EPOCH));
       map.put("YEAR", simple(SqlStdOperatorTable.YEAR));
       map.put("QUARTER", simple(SqlStdOperatorTable.QUARTER));
       map.put("MONTH", simple(SqlStdOperatorTable.MONTH));

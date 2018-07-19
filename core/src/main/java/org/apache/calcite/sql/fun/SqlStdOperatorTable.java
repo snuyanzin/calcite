@@ -1722,6 +1722,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction EXTRACT = new SqlExtractFunction();
 
   /**
+   * The SQL <code>EPOCH</code> operator. Returns the number
+   * of seconds since 1970-01-01 00:00:00 UTC (can be negative)
+   * from a DATETIME  E.g.<br>
+   * <code>EPOCH(date '2008-9-23')</code> returns <code>
+   * 1222128000</code>
+   */
+  public static final SqlDatePartFunction EPOCH =
+      new SqlDatePartFunction("EPOCH", TimeUnit.EPOCH);
+
+  /**
    * The SQL <code>YEAR</code> operator. Returns the Year
    * from a DATETIME  E.g.<br>
    * <code>YEAR(date '2008-9-23')</code> returns <code>
