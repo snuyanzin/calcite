@@ -1767,6 +1767,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlDatePartFunction("DAYOFYEAR", TimeUnit.DOY);
 
   /**
+   * The SQL <code>DOY</code> operator. Returns the DOY
+   * from a DATETIME  E.g.<br>
+   * <code>DOY(date '2008-9-23')</code> returns <code>
+   * 267</code>
+   */
+  public static final SqlDatePartFunction DOY =
+      new SqlDatePartFunction("DOY", TimeUnit.DOY);
+
+  /**
    * The SQL <code>DAYOFMONTH</code> operator. Returns the Day
    * from a DATETIME  E.g.<br>
    * <code>DAYOFMONTH(date '2008-9-23')</code> returns <code>

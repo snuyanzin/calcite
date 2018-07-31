@@ -1902,6 +1902,9 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("{fn DAYOFYEAR(DATE '2014-12-10')}",
         "cannot translate call EXTRACT.*",
         true);
+    tester.checkFails("{fn DOY(DATE '2014-12-10')}",
+        "cannot translate call EXTRACT.*",
+        true);
     tester.checkScalar("{fn HOUR(TIMESTAMP '2014-12-10 12:34:56')}", 12,
         "BIGINT NOT NULL");
     tester.checkScalar("{fn MINUTE(TIMESTAMP '2014-12-10 12:34:56')}", 34,
@@ -5651,6 +5654,22 @@ public abstract class SqlOperatorBaseTest {
         true);
     tester.checkFails(
         "dayofyear(cast(null as date))",
+        "cannot translate call EXTRACT.*",
+        true);
+  }
+
+  @Test public void testDOY() {
+    tester.setFor(
+        SqlStdOperatorTable.DOY,
+        VM_FENNEL,
+        VM_JAVA);
+    // TODO: Not implemented in operator test execution code
+    tester.checkFails(
+        "doy(date '2008-1-23')",
+        "cannot translate call EXTRACT.*",
+        true);
+    tester.checkFails(
+        "doy(cast(null as date))",
         "cannot translate call EXTRACT.*",
         true);
   }
