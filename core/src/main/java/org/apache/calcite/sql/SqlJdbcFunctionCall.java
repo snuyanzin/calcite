@@ -715,6 +715,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("DAYOFYEAR", simple(SqlStdOperatorTable.DAYOFYEAR));
       map.put("DAYOFMONTH", simple(SqlStdOperatorTable.DAYOFMONTH));
       map.put("DAYOFWEEK", simple(SqlStdOperatorTable.DAYOFWEEK));
+      map.put("ISODOW", simple(SqlStdOperatorTable.ISODOW));
       map.put("HOUR", simple(SqlStdOperatorTable.HOUR));
       map.put("MINUTE", simple(SqlStdOperatorTable.MINUTE));
       map.put("SECOND", simple(SqlStdOperatorTable.SECOND));

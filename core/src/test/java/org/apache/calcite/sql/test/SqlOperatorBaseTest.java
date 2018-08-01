@@ -1899,6 +1899,8 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("{fn DAYOFWEEK(DATE '2014-12-10')}",
         "cannot translate call EXTRACT.*",
         true);
+    tester.checkScalar("{fn ISODOW(DATE '2014-12-10')}", 3,
+            "BIGINT NOT NULL");
     tester.checkFails("{fn DAYOFYEAR(DATE '2014-12-10')}",
         "cannot translate call EXTRACT.*",
         true);
@@ -5680,6 +5682,19 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("dayofweek(cast(null as date))",
         "cannot translate call EXTRACT.*",
         true);
+  }
+
+  @Test public void testISODOW() {
+    tester.setFor(
+            SqlStdOperatorTable.ISODOW,
+            VM_FENNEL,
+            VM_JAVA);
+
+    tester.checkScalar(
+            "isodow(date '2014-12-10')",
+            "3",
+            "BIGINT NOT NULL");
+    tester.checkNull("isodow(cast(null as date))");
   }
 
   @Test public void testHour() {
