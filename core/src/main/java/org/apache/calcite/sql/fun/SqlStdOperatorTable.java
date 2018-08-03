@@ -1790,8 +1790,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * from a DATETIME  E.g.<br>
    * This is identical to dow except for Sunday. This matches the ISO 8601
    * day of the week numbering.<br>
-   * <code>YEAR(date '2001-02-18')</code> returns <code>
-   * 7</code>
+   * <code>ISODOW(date '2014-12-10')</code> returns <code>
+   * 3</code>
    */
   public static final SqlDatePartFunction ISODOW =
           new SqlDatePartFunction("ISODOW", TimeUnit.ISODOW);

@@ -267,6 +267,11 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * represents Sunday</td>
  * </tr>
  * <tr>
+ * <td>ISODOW(date)</td>
+ * <td>An integer from 1 to 7 representing the day of the week in date; 1
+ * represents Monday</td>
+ * </tr>
+ * <tr>
  * <td>DAYOFYEAR(date)</td>
  * <td>An integer from 1 to 366 representing the day of the year in date</td>
  * </tr>
@@ -378,7 +383,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   /** List of all time/date function names defined by JDBC. */
   private static final String TIME_DATE_FUNCTIONS = constructFuncList(
       "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
-      "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
+      "ISODOW", "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
       "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
       "WEEK", "YEAR");
 
