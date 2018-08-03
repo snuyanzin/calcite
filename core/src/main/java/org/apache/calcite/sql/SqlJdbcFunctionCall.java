@@ -324,6 +324,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <td>An integer representing the year component of date</td>
  * </tr>
  * <tr>
+ * <td>ISOYEAR(date)</td>
+ * <td>An integer representing the year (by ISO 8601) component of date</td>
+ * </tr>
+ * <tr>
  * <td colspan="2"><br>
  *
  * <h3>SYSTEM FUNCTIONS</h3>
@@ -380,7 +384,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
       "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
       "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
-      "WEEK", "YEAR");
+      "WEEK", "YEAR", "ISOYEAR");
 
   /** List of all system function names defined by JDBC. */
   private static final String SYSTEM_FUNCTIONS = constructFuncList(
@@ -709,6 +713,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
             }
           });
       map.put("YEAR", simple(SqlStdOperatorTable.YEAR));
+      map.put("ISOYEAR", simple(SqlStdOperatorTable.ISOYEAR));
       map.put("QUARTER", simple(SqlStdOperatorTable.QUARTER));
       map.put("MONTH", simple(SqlStdOperatorTable.MONTH));
       map.put("WEEK", simple(SqlStdOperatorTable.WEEK));

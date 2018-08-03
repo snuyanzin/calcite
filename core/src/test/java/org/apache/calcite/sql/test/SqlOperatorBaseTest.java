@@ -1925,6 +1925,8 @@ public abstract class SqlOperatorBaseTest {
         "cannot translate call EXTRACT.*",
         true);
     tester.checkScalar("{fn YEAR(DATE '2014-12-10')}", 2014, "BIGINT NOT NULL");
+    tester.checkScalar("{fn ISOYEAR(DATE '2006-01-01')}", 2005, "BIGINT NOT NULL");
+    tester.checkScalar("{fn ISOYEAR(DATE '2006-01-02')}", 2006, "BIGINT NOT NULL");
 
     // System Functions
     tester.checkType("{fn DATABASE()}", "VARCHAR(2000) NOT NULL");
@@ -5551,6 +5553,23 @@ public abstract class SqlOperatorBaseTest {
         "2008",
         "BIGINT NOT NULL");
     tester.checkNull("year(cast(null as date))");
+  }
+
+  @Test public void testISOYear() {
+    tester.setFor(
+            SqlStdOperatorTable.ISOYEAR,
+            VM_FENNEL,
+            VM_JAVA);
+
+    tester.checkScalar(
+            "isoyear(date '2006-01-01')",
+            "2005",
+            "BIGINT NOT NULL");
+    tester.checkScalar(
+            "isoyear(date '2006-01-02')",
+            "2006",
+            "BIGINT NOT NULL");
+    tester.checkNull("isoyear(cast(null as date))");
   }
 
   @Test public void testQuarter() {

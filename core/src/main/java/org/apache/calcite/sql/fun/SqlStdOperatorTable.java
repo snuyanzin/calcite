@@ -1731,6 +1731,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlDatePartFunction("YEAR", TimeUnit.YEAR);
 
   /**
+   * The SQL <code>ISOYEAR</code> operator. Returns The ISO 8601
+   * week-numbering year that the date falls in
+   * from a DATETIME  E.g.<br>
+   * Each ISO 8601 week-numbering year begins with the Monday of the week
+   * containing the 4th of January, so in early January or late December the
+   * ISO year may be different from the Gregorian year. See the week
+   * field for more information.<br>
+   * <code>ISOYEAR(date '2006-01-02')</code> returns <code>
+   * 2006</code>
+   */
+  public static final SqlDatePartFunction ISOYEAR =
+          new SqlDatePartFunction("ISOYEAR", TimeUnit.ISOYEAR);
+
+  /**
    * The SQL <code>QUARTER</code> operator. Returns the Quarter
    * from a DATETIME  E.g.<br>
    * <code>QUARTER(date '2008-9-23')</code> returns <code>
