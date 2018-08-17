@@ -15,7 +15,7 @@ public class ParquetSchema extends AbstractSchema {
         if (tableMap == null) {
             tableMap = new HashMap<>();
             tableMap.put("example", new ParquetTable(new File(Thread.currentThread().getContextClassLoader()
-                    .getResource("userdata1.parquet").getPath())));
+                    .getResource("userdata5.parquet").getPath())));
         }
         return tableMap;
     }

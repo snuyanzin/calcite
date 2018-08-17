@@ -19,7 +19,20 @@ public class Driver {
         properties.put("lex","JAVA");
         Connection conn = DriverManager.getConnection(url, properties);
 
-        String sql = "SELECT last_name, first_name, cc, country from test.example WHERE last_name = 'Adams' order by last_name";
+        String sql = "SELECT " +
+   //             "registration_dttm," +
+   //             "id, " +
+                "first_name, " +
+                "last_name, "
+                 + " email, "
+        + " gender, "
+        + " ip_address, "
+        + " cc, "
+        + " country, "
+        + " birthdate, "
+     //   + " salary, "
+        + " title, "
+        + " comments from test.example WHERE last_name = 'Adams' order by last_name";
         AsciiTable at = new AsciiTable();
 
 
