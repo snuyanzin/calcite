@@ -14,22 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.parquet;
-
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaFactory;
-import org.apache.calcite.schema.SchemaPlus;
-
-import java.util.Map;
 
 /**
- * ParquetSchemaFactory.
+ * Query provider based on parquet
  */
-public class ParquetSchemaFactory implements SchemaFactory {
+@PackageMarker
+package org.apache.calcite.parquet;
 
-  @Override public Schema create(SchemaPlus schemaPlus, String s, Map<String, Object> map) {
-    return new ParquetSchema();
-  }
-}
+import org.apache.calcite.avatica.util.PackageMarker;
 
-// End ParquetSchemaFactory.java
+// End package-info.java
