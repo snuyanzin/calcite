@@ -43,8 +43,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -73,6 +75,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.RandomAccess;
@@ -1997,12 +2000,30 @@ public class UtilTest {
     assertThat(Iterables.size(names.iterable()), is(1));
     names.add("Baz");
     names.add("Abcde");
+    names.add("WOMBAT");
     names.add("Zymurgy");
-    assertThat(Iterables.size(names.iterable()), is(4));
+    assertThat(names.toString(), is("[Abcde, Baz, baz, WOMBAT, Zymurgy]"));
+    assertThat(Iterables.size(names.iterable()), is(5));
     assertThat(names.range("baz", false).size(), is(2));
     assertThat(names.range("baz", true).size(), is(1));
     assertThat(names.range("BAZ", true).size(), is(0));
     assertThat(names.range("Baz", true).size(), is(1));
+    assertThat(names.contains("baz", true), is(true));
+    assertThat(names.contains("baz", false), is(true));
+    assertThat(names.contains("BAZ", true), is(false));
+    assertThat(names.contains("BAZ", false), is(true));
+    assertThat(names.contains("abcde", true), is(false));
+    assertThat(names.contains("abcde", false), is(true));
+    assertThat(names.contains("ABCDE", true), is(false));
+    assertThat(names.contains("ABCDE", false), is(true));
+    assertThat(names.contains("wombat", true), is(false));
+    assertThat(names.contains("wombat", false), is(true));
+    assertThat(names.contains("womBat", true), is(false));
+    assertThat(names.contains("womBat", false), is(true));
+    assertThat(names.contains("WOMBAT", true), is(true));
+    assertThat(names.contains("WOMBAT", false), is(true));
+    assertThat(names.contains("zyMurgy", true), is(false));
+    assertThat(names.contains("zyMurgy", false), is(true));
   }
 
   /** Unit test for {@link org.apache.calcite.util.NameMap}. */
@@ -2036,14 +2057,30 @@ public class UtilTest {
     assertThat(map.map().size(), is(1));
     map.put("Baz", 1);
     map.put("Abcde", 2);
+    map.put("WOMBAT", 4);
     map.put("Zymurgy", 3);
-    assertThat(map.map().size(), is(4));
-    assertThat(map.map().entrySet().size(), is(4));
-    assertThat(map.map().keySet().size(), is(4));
+    assertThat(map.toString(),
+        is("{Abcde=2, Baz=1, baz=0, WOMBAT=4, Zymurgy=3}"));
+    assertThat(map.map().size(), is(5));
+    assertThat(map.map().entrySet().size(), is(5));
+    assertThat(map.map().keySet().size(), is(5));
     assertThat(map.range("baz", false).size(), is(2));
     assertThat(map.range("baz", true).size(), is(1));
     assertThat(map.range("BAZ", true).size(), is(0));
     assertThat(map.range("Baz", true).size(), is(1));
+    assertThat(map.containsKey("baz", true), is(true));
+    assertThat(map.containsKey("baz", false), is(true));
+    assertThat(map.containsKey("BAZ", true), is(false));
+    assertThat(map.containsKey("BAZ", false), is(true));
+    assertThat(map.containsKey("abcde", true), is(false));
+    assertThat(map.containsKey("abcde", false), is(true));
+    assertThat(map.containsKey("ABCDE", true), is(false));
+    assertThat(map.containsKey("ABCDE", false), is(true));
+    assertThat(map.containsKey("wombat", true), is(false));
+    assertThat(map.containsKey("wombat", false), is(true));
+    assertThat(map.containsKey("womBat", false), is(true));
+    assertThat(map.containsKey("zyMurgy", true), is(false));
+    assertThat(map.containsKey("zyMurgy", false), is(true));
   }
 
   /** Unit test for {@link org.apache.calcite.util.NameMultimap}. */
@@ -2079,14 +2116,31 @@ public class UtilTest {
     assertThat(map.map().size(), is(2));
     map.put("Baz", 1);
     map.put("Abcde", 2);
+    map.put("WOMBAT", 4);
     map.put("Zymurgy", 3);
-    assertThat(map.map().size(), is(5));
-    assertThat(map.map().entrySet().size(), is(5));
-    assertThat(map.map().keySet().size(), is(5));
+    final String expected = "{Abcde=[2], BAz=[0], Baz=[1], baz=[0, 0],"
+        + " WOMBAT=[4], Zymurgy=[3]}";
+    assertThat(map.toString(), is(expected));
+    assertThat(map.map().size(), is(6));
+    assertThat(map.map().entrySet().size(), is(6));
+    assertThat(map.map().keySet().size(), is(6));
     assertThat(map.range("baz", false).size(), is(4));
     assertThat(map.range("baz", true).size(), is(2));
     assertThat(map.range("BAZ", true).size(), is(0));
     assertThat(map.range("Baz", true).size(), is(1));
+    assertThat(map.containsKey("baz", true), is(true));
+    assertThat(map.containsKey("baz", false), is(true));
+    assertThat(map.containsKey("BAZ", true), is(false));
+    assertThat(map.containsKey("BAZ", false), is(true));
+    assertThat(map.containsKey("abcde", true), is(false));
+    assertThat(map.containsKey("abcde", false), is(true));
+    assertThat(map.containsKey("ABCDE", true), is(false));
+    assertThat(map.containsKey("ABCDE", false), is(true));
+    assertThat(map.containsKey("wombat", true), is(false));
+    assertThat(map.containsKey("wombat", false), is(true));
+    assertThat(map.containsKey("womBat", false), is(true));
+    assertThat(map.containsKey("zyMurgy", true), is(false));
+    assertThat(map.containsKey("zyMurgy", false), is(true));
   }
 
   @Test public void testNlsStringClone() {
@@ -2173,6 +2227,49 @@ public class UtilTest {
     final List<String> beatles2 = new LinkedList<>(beatles);
     assertThat(Util.transform(beatles2, String::length),
         not(instanceOf(RandomAccess.class)));
+  }
+
+  /** Tests {@link Util#filter(Iterable, java.util.function.Predicate)}. */
+  @Test public void testFilter() {
+    final List<String> beatles =
+        Arrays.asList("John", "Paul", "George", "Ringo");
+    final List<String> empty = Collections.emptyList();
+    final List<String> nullBeatles =
+        Arrays.asList("John", "Paul", null, "Ringo");
+    assertThat(Util.filter(beatles, s -> s.length() == 4),
+        isIterable(Arrays.asList("John", "Paul")));
+    assertThat(Util.filter(empty, s -> s.length() == 4), isIterable(empty));
+    assertThat(Util.filter(empty, s -> false), isIterable(empty));
+    assertThat(Util.filter(empty, s -> true), isIterable(empty));
+    assertThat(Util.filter(beatles, s -> false), isIterable(empty));
+    assertThat(Util.filter(beatles, s -> true), isIterable(beatles));
+    assertThat(Util.filter(nullBeatles, s -> false), isIterable(empty));
+    assertThat(Util.filter(nullBeatles, s -> true), isIterable(nullBeatles));
+    assertThat(Util.filter(nullBeatles, Objects::isNull),
+        isIterable(Collections.singletonList(null)));
+    assertThat(Util.filter(nullBeatles, Objects::nonNull),
+        isIterable(Arrays.asList("John", "Paul", "Ringo")));
+  }
+
+  private static <E> Matcher<Iterable<E>> isIterable(final Iterable<E> iterable) {
+    final List<E> list = toList(iterable);
+    return new TypeSafeMatcher<Iterable<E>>() {
+      protected boolean matchesSafely(Iterable<E> iterable) {
+        return list.equals(toList(iterable));
+      }
+
+      public void describeTo(Description description) {
+        description.appendText("is iterable ").appendValue(list);
+      }
+    };
+  }
+
+  private static <E> List<E> toList(Iterable<E> iterable) {
+    final List<E> list = new ArrayList<>();
+    for (E e : iterable) {
+      list.add(e);
+    }
+    return list;
   }
 
   static String mismatchDescription(Matcher m, Object item) {

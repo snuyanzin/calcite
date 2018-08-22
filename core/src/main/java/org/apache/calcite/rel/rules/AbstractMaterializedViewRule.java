@@ -29,7 +29,6 @@ import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.core.Aggregate;
@@ -212,9 +211,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         new RexSimplify(rexBuilder, predicates, true, executor);
 
     final List<RelOptMaterialization> materializations =
-        (planner instanceof VolcanoPlanner)
-            ? ((VolcanoPlanner) planner).getMaterializations()
-            : ImmutableList.of();
+        planner.getMaterializations();
 
     if (!materializations.isEmpty()) {
       // 1. Explore query plan to recognize whether preconditions to
@@ -1714,7 +1711,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       if (aggregation == SqlStdOperatorTable.SUM
           || aggregation == SqlStdOperatorTable.MIN
           || aggregation == SqlStdOperatorTable.MAX
-          || aggregation == SqlStdOperatorTable.SUM0) {
+          || aggregation == SqlStdOperatorTable.SUM0
+          || aggregation == SqlStdOperatorTable.ANY_VALUE) {
         return aggregation;
       } else if (aggregation == SqlStdOperatorTable.COUNT) {
         return SqlStdOperatorTable.SUM0;

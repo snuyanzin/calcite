@@ -48,13 +48,23 @@ public class NameMultimap<V> {
     this(new TreeMap<String, List<V>>(COMPARATOR));
   }
 
+  @Override public String toString() {
+    return map.toString();
+  }
+
+  @Override public int hashCode() {
+    return map.hashCode();
+  }
+
+  @Override public boolean equals(Object obj) {
+    return this == obj
+        || obj instanceof NameMultimap
+        && map.equals(((NameMultimap) obj).map);
+  }
+
   /** Adds an entry to this multimap. */
   public void put(String name, V v) {
-    List<V> list = map.get(name);
-    if (list == null) {
-      list = new ArrayList<>();
-      map.put(name, list);
-    }
+    List<V> list = map.computeIfAbsent(name, k -> new ArrayList<>());
     list.add(v);
   }
 

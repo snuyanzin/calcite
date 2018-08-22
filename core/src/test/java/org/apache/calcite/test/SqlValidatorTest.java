@@ -40,6 +40,7 @@ import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -7697,6 +7698,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     check("SELECT MAX(5) FROM emp");
   }
 
+  @Test public void testAnyValueFunction() {
+    check("SELECT any_value(ename) from emp");
+  }
+
   @Test public void testFunctionalDistinct() {
     check("select count(distinct sal) from emp");
     checkFails("select COALESCE(^distinct^ sal) from emp",
@@ -8850,14 +8855,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * check for default value only when target field is null. */
   @Test public void testInsertShouldNotCheckForDefaultValue() {
     final int c =
-        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get();
+        CountingFactory.THREAD_CALL_COUNT.get().get();
     final SqlTester pragmaticTester =
         tester.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
     final String sql1 = "insert into emp values(1, 'nom', 'job', 0, "
         + "timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
     pragmaticTester.checkQuery(sql1);
     assertThat("Should not check for default value if column is in INSERT",
-        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
+        CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
 
     // Now add a list of target columns, keeping the query otherwise the same.
     final String sql2 = "insert into emp (empno, ename, job, mgr, hiredate,\n"
@@ -8866,7 +8871,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
     pragmaticTester.checkQuery(sql2);
     assertThat("Should not check for default value if column is in INSERT",
-        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
+        CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
 
     // Now remove SLACKER, which is NOT NULL, from the target list.
     final String sql3 = "insert into ^emp^ (empno, ename, job, mgr, hiredate,\n"
@@ -8877,7 +8882,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         "Column 'SLACKER' has no default value and does not allow NULLs");
     assertThat("Should not check for default value, even if if column is missing"
             + "from INSERT and nullable",
-        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(),
+        CountingFactory.THREAD_CALL_COUNT.get().get(),
         is(c));
 
     // Now remove DEPTNO, which has a default value, from the target list.
@@ -8889,7 +8894,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  timestamp '1970-01-01 00:00:00', 1, 1, false)";
     pragmaticTester.checkQuery(sql4);
     assertThat("Missing DEFAULT column generates a call to factory",
-        MockCatalogReader.CountingFactory.THREAD_CALL_COUNT.get().get(),
+        CountingFactory.THREAD_CALL_COUNT.get().get(),
         is(c));
   }
 

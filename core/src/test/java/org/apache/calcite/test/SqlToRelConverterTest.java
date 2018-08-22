@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
@@ -2519,6 +2520,14 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "unnest(t1.fake_col) as t2";
     sql(sql3).with(getTesterWithDynamicTable()).ok();
   }
+
+  @Test public void testStarDynamicSchemaUnnestNestedSubQuery() {
+    String sql3 = "select t2.c1\n"
+        + "from (select * from SALES.CUSTOMER) as t1,\n"
+        + "unnest(t1.fake_col) as t2(c1)";
+    sql(sql3).with(getTesterWithDynamicTable()).ok();
+  }
+
   /**
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
@@ -2614,9 +2623,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2366">[CALCITE-2366]
+   * Add support for ANY_VALUE aggregate function</a>. */
+  @Test public void testAnyValueAggregateFunctionNoGroupBy() throws Exception {
+    final String sql = "SELECT any_value(empno) as anyempno FROM emp AS e";
+    sql(sql).ok();
+  }
+
+  @Test public void testAnyValueAggregateFunctionGroupBy() throws Exception {
+    final String sql = "SELECT any_value(empno) as anyempno FROM emp AS e group by e.sal";
+    sql(sql).ok();
+  }
+
   private Tester getExtendedTester() {
     return tester.withCatalogReaderFactory(typeFactory ->
-        new MockCatalogReader(typeFactory, true).init().init2());
+        new MockCatalogReaderExtended(typeFactory, true).init());
   }
 
   @Test public void testLarge() {

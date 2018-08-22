@@ -93,6 +93,7 @@ import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
@@ -190,6 +191,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RADIANS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGR_COUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
@@ -437,12 +439,14 @@ public class RexImpTable {
     map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
     aggMap.put(COUNT, constructorSupplier(CountImplementor.class));
+    aggMap.put(REGR_COUNT, constructorSupplier(CountImplementor.class));
     aggMap.put(SUM0, constructorSupplier(SumImplementor.class));
     aggMap.put(SUM, constructorSupplier(SumImplementor.class));
     Supplier<MinMaxImplementor> minMax =
         constructorSupplier(MinMaxImplementor.class);
     aggMap.put(MIN, minMax);
     aggMap.put(MAX, minMax);
+    aggMap.put(ANY_VALUE, minMax);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
     aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
@@ -462,6 +466,7 @@ public class RexImpTable {
     winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
     winAggMap.put(NTILE, constructorSupplier(NtileImplementor.class));
     winAggMap.put(COUNT, constructorSupplier(CountWinImplementor.class));
+    winAggMap.put(REGR_COUNT, constructorSupplier(CountWinImplementor.class));
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {

@@ -413,6 +413,46 @@ public class JdbcTest {
             "id=empid; names=[empid]; type=COLUMN"));
   }
 
+  @Test public void testSqlAdvisorNonExistingColumn()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select e.empdid_wrong_name.^ from \"hr\".\"emps\" e",
+        CalciteAssert.checkResultUnordered(
+            "id=*; names=[*]; type=KEYWORD",
+            "id=; names=null; type=MATCH"));
+  }
+
+  @Test public void testSqlAdvisorNonStructColumn()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select e.\"empid\".^ from \"hr\".\"emps\" e",
+        CalciteAssert.checkResultUnordered(
+            "id=*; names=[*]; type=KEYWORD",
+            "id=; names=null; type=MATCH"));
+  }
+
+  @Test public void testSqlAdvisorSubSchema()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select * from \"hr\".^.test_test_test",
+        CalciteAssert.checkResultUnordered(
+            "id=; names=null; type=MATCH",
+            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
+            "id=hr.depts; names=[hr, depts]; type=TABLE",
+            "id=hr.emps; names=[hr, emps]; type=TABLE",
+            "id=hr.locations; names=[hr, locations]; type=TABLE",
+            "id=hr; names=[hr]; type=SCHEMA"));
+  }
+
+  @Test public void testSqlAdvisorTableInSchema()
+      throws SQLException, ClassNotFoundException {
+    adviseSql("select * from \"hr\".^",
+        CalciteAssert.checkResultUnordered(
+            "id=; names=null; type=MATCH",
+            "id=hr.dependents; names=[hr, dependents]; type=TABLE",
+            "id=hr.depts; names=[hr, depts]; type=TABLE",
+            "id=hr.emps; names=[hr, emps]; type=TABLE",
+            "id=hr.locations; names=[hr, locations]; type=TABLE",
+            "id=hr; names=[hr]; type=SCHEMA"));
+  }
+
   /**
    * Tests {@link org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction}.
    */
@@ -6188,6 +6228,36 @@ public class JdbcTest {
     CalciteAssert.that(CalciteAssert.Config.REGULAR)
         .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
+  }
+
+  /** Unit test for LATERAL CROSS JOIN to table function. */
+  @Test public void testLateralJoin() {
+    final String sql = "SELECT *\n"
+        + "FROM AUX.SIMPLETABLE ST\n"
+        + "CROSS JOIN LATERAL TABLE(AUX.TBLFUN(ST.INTCOL))";
+    CalciteAssert.that(CalciteAssert.Config.AUX)
+        .query(sql)
+        .returnsUnordered(
+            "STRCOL=ABC; INTCOL=1; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=0; s=",
+            "STRCOL=GHI; INTCOL=3; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=2; s=ab");
+  }
+
+  /** Unit test for view expansion with lateral join. */
+  @Test public void testExpandViewWithLateralJoin() {
+    final String sql = "SELECT * FROM AUX.VIEWLATERAL";
+    CalciteAssert.that(CalciteAssert.Config.AUX)
+        .query(sql)
+        .returnsUnordered(
+            "STRCOL=ABC; INTCOL=1; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=0; s=",
+            "STRCOL=DEF; INTCOL=2; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=0; s=",
+            "STRCOL=GHI; INTCOL=3; n=1; s=a",
+            "STRCOL=GHI; INTCOL=3; n=2; s=ab");
   }
 
   /** Tests that {@link Hook#PARSE_TREE} works. */

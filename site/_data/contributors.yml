@@ -95,7 +95,7 @@
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
-  org: Hortonworks
+  org: Looker
   role: PMC
   homepage: http://people.apache.org/~jhyde
 - name: Kevin Liew
@@ -121,9 +121,9 @@
 - name: Michael Mior
   apacheId: mmior
   githubId: michaelmior
-  org: University of Waterloo
+  org: Rochester Institute of Technology
   role: PMC Chair
-  homepage: http://michael.mior.ca/
+  homepage: https://michael.mior.ca/
 - name: Milinda Pathirage
   apacheId: milinda
   githubId: milinda
@@ -145,6 +145,11 @@
   apacheId: nishant
   githubId: nishantmonu51
   org: Hortonworks
+  role: Committer
+- name: Sergey Nuyanzin
+  apacheId: snuyanzin
+  githubId: snuyanzin
+  org: EPAM
   role: Committer
 - name: Shuyi Chen
   apacheId: shuyichen

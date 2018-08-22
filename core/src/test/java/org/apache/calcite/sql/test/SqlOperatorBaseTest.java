@@ -2005,6 +2005,21 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("x''\n'ab' = x'ab'", Boolean.TRUE);
   }
 
+  @Test public void testComplexLiteral() {
+    tester.check("select 2 * 2 * x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "8",
+        0);
+    tester.check("select 1 * 2 * 3 * x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "12",
+        0);
+    tester.check("select 1 + 2 + 3 + 4 + x from (select 2 as x)",
+        new SqlTests.StringTypeChecker("INTEGER NOT NULL"),
+        "12",
+        0);
+  }
+
   @Test public void testRow() {
     tester.setFor(SqlStdOperatorTable.ROW, VM_FENNEL);
   }
@@ -7278,6 +7293,48 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testAnyValueFunc() {
+    tester.setFor(SqlStdOperatorTable.ANY_VALUE, VM_EXPAND);
+    tester.checkFails(
+        "any_value(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkType("any_value(1)", "INTEGER");
+    tester.checkType("any_value(1.2)", "DECIMAL(2, 1)");
+    tester.checkType("any_value(DISTINCT 1.5)", "DECIMAL(2, 1)");
+    tester.checkFails(
+        "^any_value()^",
+        "Invalid number of arguments to function 'ANY_VALUE'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^any_value(1, 2)^",
+        "Invalid number of arguments to function 'ANY_VALUE'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
+    if (!enable) {
+      return;
+    }
+    tester.checkAgg(
+        "any_value(x)",
+        values,
+        "0",
+        0d);
+    tester.checkAgg(
+        "any_value(CASE x WHEN 0 THEN NULL ELSE -1 END)",
+        values,
+        "-1",
+        0d);
+    tester.checkAgg(
+        "any_value(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)",
+        values,
+        "-1",
+        0d);
+    tester.checkAgg(
+        "any_value(DISTINCT x)",
+        values,
+        "0",
+        0d);
+  }
   /**
    * Tests that CAST fails when given a value just outside the valid range for
    * that type. For example,
@@ -7597,7 +7654,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   public static SqlTester tester() {
-    return new TesterImpl(DefaultSqlTestFactory.INSTANCE);
+    return new TesterImpl(SqlTestFactory.INSTANCE);
   }
 
   /**
@@ -7628,16 +7685,8 @@ public abstract class SqlOperatorBaseTest {
       }
     }
 
-    @Override protected TesterImpl with(final String name2, final Object value) {
-      return new TesterImpl(
-          new DelegatingSqlTestFactory(factory) {
-            @Override public Object get(String name) {
-              if (name.equals(name2)) {
-                return value;
-              }
-              return super.get(name);
-            }
-          });
+    @Override protected TesterImpl with(final String name, final Object value) {
+      return new TesterImpl(factory.with(name, value));
     }
   }
 

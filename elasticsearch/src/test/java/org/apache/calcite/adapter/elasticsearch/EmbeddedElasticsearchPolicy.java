@@ -18,21 +18,31 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.util.Closer;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.junit.rules.ExternalResource;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Used to initialize a single elastic node. For performance reasons (node startup costs),
  * same instance is usually shared across multiple tests.
  *
- * This rule should be used as follows:
+ * <p>This rule should be used as follows:
  * <pre>
  *  public class MyTest {
  *    &#64;ClassRule
@@ -45,7 +55,7 @@ import java.util.Objects;
  *
  *    &#64;Test
  *    public void myTest() {
- *      TransportAddress address = RULE.httpAddress();
+ *      RestClient client = RULE.restClient();
  *      // ....
  *    }
  *  }
@@ -83,7 +93,71 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
   }
 
   /**
-   * Exposes Jackson API to be used for low-level ES.
+   * Creates index in elastic search given mapping.
+   *
+   * @param index index of the index
+   * @param mapping field and field type mapping
+   * @throws IOException if there is an error
+   */
+  void createIndex(String index, Map<String, String> mapping) throws IOException {
+    Objects.requireNonNull(index, "index");
+    Objects.requireNonNull(mapping, "mapping");
+
+    ObjectNode json = mapper().createObjectNode();
+    for (Map.Entry<String, String> entry: mapping.entrySet()) {
+      json.set(entry.getKey(), json.objectNode().put("type", entry.getValue()));
+    }
+
+    json = (ObjectNode) json.objectNode().set("properties", json);
+    json = (ObjectNode) json.objectNode().set(index, json);
+    json = (ObjectNode) json.objectNode().set("mappings", json);
+
+    // create index and mapping
+    final HttpEntity entity = new StringEntity(mapper().writeValueAsString(json),
+        ContentType.APPLICATION_JSON);
+    restClient().performRequest("PUT", "/" + index, Collections.emptyMap(), entity);
+  }
+
+  void insertDocument(String index, ObjectNode document) throws IOException {
+    Objects.requireNonNull(index, "index");
+    Objects.requireNonNull(document, "document");
+    String uri = String.format(Locale.ROOT,
+          "/%s/%s/?refresh", index, index);
+    StringEntity entity = new StringEntity(mapper().writeValueAsString(document),
+        ContentType.APPLICATION_JSON);
+
+    restClient().performRequest("POST", uri,
+        Collections.emptyMap(),
+        entity);
+  }
+
+  void insertBulk(String index, List<ObjectNode> documents) throws IOException {
+    Objects.requireNonNull(index, "index");
+    Objects.requireNonNull(documents, "documents");
+
+    if (documents.isEmpty()) {
+      // nothing to process
+      return;
+    }
+
+    List<String> bulk = new ArrayList<>(documents.size() * 2);
+    for (ObjectNode doc: documents) {
+      bulk.add("{\"index\": {} }"); // index/type will be derived from _bulk URI
+      bulk.add(mapper().writeValueAsString(doc));
+    }
+
+    final StringEntity entity = new StringEntity(String.join("\n", bulk) + "\n",
+        ContentType.APPLICATION_JSON);
+
+    final String uri = String.format(Locale.ROOT, "/%s/%s/_bulk?refresh", index, index);
+
+    restClient().performRequest("POST", uri,
+        Collections.emptyMap(),
+        entity);
+  }
+
+  /**
+   * Exposes Jackson API to be used to parse search results.
    * @return existing instance of ObjectMapper
    */
   ObjectMapper mapper() {
@@ -91,8 +165,8 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
   }
 
   /**
-   * Low-level http rest client to elastic search
-   * @return current ES rest client
+   * Low-level http rest client connected to current embedded elastic search instance.
+   * @return http client connected to ES cluster
    */
   RestClient restClient() {
     if (client != null) {
@@ -110,7 +184,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
    * HTTP address for rest clients (can be ES native or any other).
    * @return http address to connect to
    */
-  TransportAddress httpAddress() {
+  private TransportAddress httpAddress() {
     return node.httpAddress();
   }
 

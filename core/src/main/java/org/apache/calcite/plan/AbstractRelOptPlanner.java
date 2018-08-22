@@ -22,9 +22,9 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -196,6 +196,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   public void addMaterialization(RelOptMaterialization materialization) {
     // ignore - this planner does not support materializations
+  }
+
+  public List<RelOptMaterialization> getMaterializations() {
+    return ImmutableList.of();
   }
 
   public void addLattice(RelOptLattice lattice) {
@@ -415,7 +419,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** Returns sub-classes of relational expression. */
   public Iterable<Class<? extends RelNode>> subClasses(
       final Class<? extends RelNode> clazz) {
-    return Iterables.filter(classes, clazz::isAssignableFrom);
+    return Util.filter(classes, clazz::isAssignableFrom);
   }
 }
 
