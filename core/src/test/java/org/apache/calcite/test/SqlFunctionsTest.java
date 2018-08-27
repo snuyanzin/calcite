@@ -16,10 +16,17 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.schema.SchemaPlus;
+
+import com.google.common.collect.ImmutableMap;
+
 
 import org.junit.Test;
 
@@ -28,9 +35,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
+import static org.apache.calcite.runtime.SqlFunctions.age;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
@@ -46,11 +55,13 @@ import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.AnyOf.anyOf;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement SQL
@@ -809,6 +820,44 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.multisetUnionDistinct(z, z), is(z));
     assertThat(SqlFunctions.multisetUnionDistinct(z, addc),
         is(Arrays.asList("a", "c", "d")));
+  }
+
+  /**
+   * testing AGE function
+   */
+  @Test public void testAge() {
+    assertEquals("12 days", age(11000000000L, 10000000000L));
+    DummyTestDataContext dtdc = new DummyTestDataContext();
+    assertEquals("41 years 6 mons 18 days", age(110000000L, dtdc));
+  }
+  /**
+   * Dummy root context for getting the current date
+   */
+  private static class DummyTestDataContext implements DataContext {
+    private final ImmutableMap<String, Object> map;
+
+    DummyTestDataContext() {
+      this.map =
+              ImmutableMap.of(
+                      Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
+                      Variable.CURRENT_TIMESTAMP.camelName, 1311120000000L);
+    }
+
+    public SchemaPlus getRootSchema() {
+      return null;
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      return null;
+    }
+
+    public QueryProvider getQueryProvider() {
+      return null;
+    }
+
+    public Object get(String name) {
+      return map.get(name);
+    }
   }
 }
 

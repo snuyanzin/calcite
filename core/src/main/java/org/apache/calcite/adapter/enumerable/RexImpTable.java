@@ -92,6 +92,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AGE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
@@ -253,6 +254,11 @@ public class RexImpTable {
         NullPolicy.STRICT);
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
+
+    final AgeImplementor ageImplementor = new AgeImplementor(BuiltInMethod.AGE.method.getName(),
+            BuiltInMethod.AGE_ONE_TIMESTAMP.method,
+            BuiltInMethod.AGE_TWO_TIMESTAMPS.method);
+    defineImplementor(AGE, NullPolicy.STRICT, ageImplementor, false);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);
@@ -1745,7 +1751,37 @@ public class RexImpTable {
           translatedOperands.get(2));
     }
   }
+  /** Implementor for the {@code AGE} function. */
+  private static class AgeImplementor extends MethodNameImplementor {
+    final Method oneTimestampMethod;
+    final Method twoTimestampsMethod;
 
+    AgeImplementor(String methodName, Method oneTimestampMethod, Method twoTimestampsMethod) {
+      super(methodName);
+      this.oneTimestampMethod = oneTimestampMethod;
+      this.twoTimestampsMethod = twoTimestampsMethod;
+    }
+
+    public Expression implement(RexToLixTranslator translator, RexCall call,
+                                List<Expression> translatedOperands) {
+
+      final Expression root = translator.getRoot();
+      switch (call.getOperands().size()) {
+      case 1:
+        return Expressions.call(
+          BuiltInMethod.AGE_ONE_TIMESTAMP.method,
+          translatedOperands.get(0),
+          root);
+      case 2:
+        return Expressions.call(
+          BuiltInMethod.AGE_TWO_TIMESTAMPS.method,
+          translatedOperands.get(0),
+          translatedOperands.get(1));
+      default:
+        throw new AssertionError();
+      }
+    }
+  }
   /** Implementor for the {@code FLOOR} and {@code CEIL} functions. */
   private static class FloorImplementor extends MethodNameImplementor {
     final Method timestampMethod;

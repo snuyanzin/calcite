@@ -452,6 +452,15 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTERVALINTERVAL_INTERVALDATETIME =
       OperandTypes.or(INTERVAL_SAME_SAME, INTERVAL_DATETIME);
 
+  public static final FamilyOperandTypeChecker TIMESTAMP_TIMESTAMP =
+          family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP);
+
+  public static final SqlSingleOperandTypeChecker TIMESTAMP_SAME_SAME =
+          OperandTypes.and(TIMESTAMP_TIMESTAMP, SAME_SAME);
+
+  public static final SqlSingleOperandTypeChecker TIMESTAMPTIMESTAMP_TIMESTAMP =
+          OperandTypes.or(TIMESTAMP_SAME_SAME, family(SqlTypeFamily.TIMESTAMP));
+
   // TODO: datetime+interval checking missing
   // TODO: interval+datetime checking missing
   public static final SqlSingleOperandTypeChecker PLUS_OPERATOR =

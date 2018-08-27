@@ -55,7 +55,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
+
 import org.apache.calcite.sql2rel.AuxiliaryConverter;
+
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
@@ -1352,6 +1354,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
+  public static final SqlFunction AGE =
+      new SqlFunction(
+          "AGE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_NOTNULL,
+          null,
+          OperandTypes.TIMESTAMPTIMESTAMP_TIMESTAMP,
+          SqlFunctionCategory.TIMEDATE
+          );
   /**
    * Uses SqlOperatorTable.useDouble for its return type since we don't know
    * what the result type will be by just looking at the operand types. For

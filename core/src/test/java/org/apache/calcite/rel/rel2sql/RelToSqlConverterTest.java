@@ -2565,6 +2565,24 @@ public class RelToSqlConverterTest {
         callsUnparseCallOnSqlSelect[0], is(true));
   }
 
+  @Test public void testAge() {
+    final String query = "select age(\"hire_date\") "
+            + "from \"reserve_employee\"\n";
+    final String expectedOracle = "SELECT AGE(\"hire_date\")\n"
+            + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedPostgresql = "SELECT AGE(\"hire_date\")\n"
+            + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedMysql = "SELECT AGE(`hire_date`)\n"
+            + "FROM `foodmart`.`reserve_employee`";
+    sql(query)
+        .withOracle()
+        .ok(expectedOracle)
+        .withPostgresql()
+        .ok(expectedPostgresql)
+        .withMysql()
+        .ok(expectedMysql);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

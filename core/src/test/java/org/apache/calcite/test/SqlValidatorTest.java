@@ -10668,6 +10668,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp_r join dept_r on (^emp_r.slackingmin^ = dept_r.slackingmin)")
             .fails(onError);
   }
+  @Test public void testAge() {
+    checkExp("age(timestamp '2001-04-10 0:0:0')");
+    checkExp("age(timestamp '2001-04-10 0:0:0', timestamp '2000-04-10 0:0:0')");
+    checkExpType("age(timestamp '2001-04-10 0:0:0')",
+            "VARCHAR NOT NULL");
+    checkExpType("age(timestamp '2001-04-10 0:0:0', timestamp '2000-04-10 0:0:0')",
+            "VARCHAR NOT NULL");
+  }
 }
 
 // End SqlValidatorTest.java

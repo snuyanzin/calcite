@@ -203,6 +203,10 @@ public abstract class SqlOperatorBaseTest {
       Pattern.compile(
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
 
+  public static final Pattern INTERVAL_PATTERN =
+          Pattern.compile(
+                  "[0-9]*[0-9]* years [0-9]*[0-9]* mons [0-9]*[0-9]* days");
+
   public static final String[] NUMERIC_TYPE_NAMES = {
       "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
       "DECIMAL(5, 2)", "REAL", "FLOAT", "DOUBLE"
@@ -5650,7 +5654,14 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
     tester.checkNull("month(cast(null as date))");
   }
-
+  @Test public void testAge() {
+    tester.setFor(SqlStdOperatorTable.AGE, VM_FENNEL, VM_JAVA);
+    tester.checkScalar("age(timestamp '2001-04-10 0:0:0', "
+                    + "timestamp '1957-06-13 0:0:0')",
+            "43 years 9 mons 27 days", "VARCHAR NOT NULL");
+    tester.checkScalar("age(timestamp '2001-04-10 0:0:0')",
+            INTERVAL_PATTERN, "VARCHAR NOT NULL");
+  }
   @Test public void testWeek() {
     tester.setFor(
         SqlStdOperatorTable.WEEK,
