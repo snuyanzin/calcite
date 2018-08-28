@@ -204,8 +204,8 @@ public abstract class SqlOperatorBaseTest {
           "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]");
 
   public static final Pattern INTERVAL_PATTERN =
-          Pattern.compile(
-                  "[0-9]*[0-9]* years [0-9]*[0-9]* mons [0-9]*[0-9]* days");
+      Pattern.compile(
+          "[0-9]*[0-9]* years [0-9]*[0-9]* mons [0-9]*[0-9]* days");
 
   public static final String[] NUMERIC_TYPE_NAMES = {
       "TINYINT", "SMALLINT", "INTEGER", "BIGINT",
@@ -1915,8 +1915,6 @@ public abstract class SqlOperatorBaseTest {
       tester.checkScalar("{fn MONTHNAME(date)}", null, "");
     }
     tester.checkType("{fn NOW()}", "TIMESTAMP(0) NOT NULL");
-    tester.checkScalar("{fn CENTURY(DATE '2014-12-10')}", "21",
-                        "BIGINT NOT NULL");
     tester.checkScalar("{fn QUARTER(DATE '2014-12-10')}", "4",
         "BIGINT NOT NULL");
     tester.checkScalar("{fn SECOND(TIMESTAMP '2014-12-10 12:34:56')}", 56,
@@ -5560,18 +5558,7 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
   }
-  @Test public void testCentury() {
-    tester.setFor(
-                        SqlStdOperatorTable.CENTURY,
-                        VM_FENNEL,
-                        VM_JAVA);
 
-    tester.checkScalar(
-                                "CENTURY(date '2008-1-23')",
-                                "21",
-                                "BIGINT NOT NULL");
-    tester.checkNull("century(cast(null as date))");
-  }
   @Test public void testYear() {
     tester.setFor(
         SqlStdOperatorTable.YEAR,
@@ -5654,13 +5641,14 @@ public abstract class SqlOperatorBaseTest {
         "BIGINT NOT NULL");
     tester.checkNull("month(cast(null as date))");
   }
+
   @Test public void testAge() {
     tester.setFor(SqlStdOperatorTable.AGE, VM_FENNEL, VM_JAVA);
     tester.checkScalar("age(timestamp '2001-04-10 0:0:0', "
-                    + "timestamp '1957-06-13 0:0:0')",
-            "43 years 9 mons 27 days", "VARCHAR NOT NULL");
+        + "timestamp '1957-06-13 0:0:0')",
+        "43 years 9 mons 27 days", "VARCHAR NOT NULL");
     tester.checkScalar("age(timestamp '2001-04-10 0:0:0')",
-            INTERVAL_PATTERN, "VARCHAR NOT NULL");
+        INTERVAL_PATTERN, "VARCHAR NOT NULL");
   }
   @Test public void testWeek() {
     tester.setFor(

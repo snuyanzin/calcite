@@ -8153,7 +8153,7 @@ public class SqlParserTest {
 
   @Test public void testAge() {
     checkExp("age(timestamp '2001-04-10 0:0:0')",
-            "AGE(TIMESTAMP '2001-04-10 00:00:00')");
+        "AGE(TIMESTAMP '2001-04-10 00:00:00')");
   }
   //~ Inner Interfaces -------------------------------------------------------
 

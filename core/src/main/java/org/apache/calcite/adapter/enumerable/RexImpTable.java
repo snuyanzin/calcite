@@ -256,8 +256,8 @@ public class RexImpTable {
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
 
     final AgeImplementor ageImplementor = new AgeImplementor(BuiltInMethod.AGE.method.getName(),
-            BuiltInMethod.AGE_ONE_TIMESTAMP.method,
-            BuiltInMethod.AGE_TWO_TIMESTAMPS.method);
+        BuiltInMethod.AGE_ONE_TIMESTAMP.method,
+        BuiltInMethod.AGE_TWO_TIMESTAMPS.method);
     defineImplementor(AGE, NullPolicy.STRICT, ageImplementor, false);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
@@ -1751,6 +1751,7 @@ public class RexImpTable {
           translatedOperands.get(2));
     }
   }
+
   /** Implementor for the {@code AGE} function. */
   private static class AgeImplementor extends MethodNameImplementor {
     final Method oneTimestampMethod;
@@ -1763,7 +1764,7 @@ public class RexImpTable {
     }
 
     public Expression implement(RexToLixTranslator translator, RexCall call,
-                                List<Expression> translatedOperands) {
+        List<Expression> translatedOperands) {
 
       final Expression root = translator.getRoot();
       switch (call.getOperands().size()) {
@@ -1782,6 +1783,7 @@ public class RexImpTable {
       }
     }
   }
+
   /** Implementor for the {@code FLOOR} and {@code CEIL} functions. */
   private static class FloorImplementor extends MethodNameImplementor {
     final Method timestampMethod;

@@ -55,13 +55,11 @@ import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.AnyOf.anyOf;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement SQL
@@ -838,9 +836,9 @@ public class SqlFunctionsTest {
 
     DummyTestDataContext() {
       this.map =
-              ImmutableMap.of(
-                      Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
-                      Variable.CURRENT_TIMESTAMP.camelName, 1311120000000L);
+          ImmutableMap.of(
+              Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
+              Variable.CURRENT_TIMESTAMP.camelName, 1311120000000L);
     }
 
     public SchemaPlus getRootSchema() {

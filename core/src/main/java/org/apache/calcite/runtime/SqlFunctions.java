@@ -1928,16 +1928,16 @@ public class SqlFunctions {
     LocalDateTime ldt2 = null;
     if (ts2 == null) {
       ldt2 = LocalDateTime.ofInstant(
-              Instant.ofEpochMilli(currentTimestamp(root)),
-              DateTimeUtils.UTC_ZONE.toZoneId());
+          Instant.ofEpochMilli(currentTimestamp(root)),
+          DateTimeUtils.UTC_ZONE.toZoneId());
     } else {
       ldt2 = LocalDateTime.ofInstant(
-              Instant.ofEpochMilli(ts2),
-              DateTimeUtils.UTC_ZONE.toZoneId());
+          Instant.ofEpochMilli(ts2),
+          DateTimeUtils.UTC_ZONE.toZoneId());
     }
     LocalDateTime ldt1 = LocalDateTime.ofInstant(
-            Instant.ofEpochMilli(ts1),
-            DateTimeUtils.UTC_ZONE.toZoneId());
+        Instant.ofEpochMilli(ts1),
+        DateTimeUtils.UTC_ZONE.toZoneId());
     Period period = Period.between(ldt1.toLocalDate(), ldt2.toLocalDate());
 
     StringBuilder sb = new StringBuilder();
@@ -1952,6 +1952,7 @@ public class SqlFunctions {
     }
     return sb.toString();
   }
+
   /** SQL {@code CURRENT_TIMESTAMP} function. */
   @NonDeterministic
   public static long currentTimestamp(DataContext root) {
@@ -2250,7 +2251,7 @@ public class SqlFunctions {
         inputTypes);
   }
 
-  private static Enumerable<ComparableList<Comparable>> p2(
+  private static Enumerable<FlatLists.ComparableList<Comparable>> p2(
       Object[] lists, int[] fieldCounts, boolean withOrdinality,
       FlatProductInputType[] inputTypes) {
     final List<Enumerator<List<Comparable>>> enumerators = new ArrayList<>();
@@ -2303,11 +2304,11 @@ public class SqlFunctions {
 
   /** Similar to {@link Linq4j#product(Iterable)} but each resulting list
    * implements {@link FlatLists.ComparableList}. */
-  public static <E extends Comparable> Enumerable<ComparableList<E>> product(
+  public static <E extends Comparable> Enumerable<FlatLists.ComparableList<E>> product(
       final List<Enumerator<List<E>>> enumerators, final int fieldCount,
       final boolean withOrdinality) {
-    return new AbstractEnumerable<ComparableList<E>>() {
-      public Enumerator<ComparableList<E>> enumerator() {
+    return new AbstractEnumerable<FlatLists.ComparableList<E>>() {
+      public Enumerator<FlatLists.ComparableList<E>> enumerator() {
         return new ProductComparableListEnumerator<>(enumerators, fieldCount,
             withOrdinality);
       }
@@ -2402,7 +2403,7 @@ public class SqlFunctions {
    *
    * @param <E> element type */
   private static class ProductComparableListEnumerator<E extends Comparable>
-      extends CartesianProductEnumerator<List<E>, ComparableList<E>> {
+      extends CartesianProductEnumerator<List<E>, FlatLists.ComparableList<E>> {
     final E[] flatElements;
     final List<E> list;
     private final boolean withOrdinality;

@@ -2567,13 +2567,13 @@ public class RelToSqlConverterTest {
 
   @Test public void testAge() {
     final String query = "select age(\"hire_date\") "
-            + "from \"reserve_employee\"\n";
+        + "from \"reserve_employee\"\n";
     final String expectedOracle = "SELECT AGE(\"hire_date\")\n"
-            + "FROM \"foodmart\".\"reserve_employee\"";
+        + "FROM \"foodmart\".\"reserve_employee\"";
     final String expectedPostgresql = "SELECT AGE(\"hire_date\")\n"
-            + "FROM \"foodmart\".\"reserve_employee\"";
+        + "FROM \"foodmart\".\"reserve_employee\"";
     final String expectedMysql = "SELECT AGE(`hire_date`)\n"
-            + "FROM `foodmart`.`reserve_employee`";
+        + "FROM `foodmart`.`reserve_employee`";
     sql(query)
         .withOracle()
         .ok(expectedOracle)

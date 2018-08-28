@@ -10672,9 +10672,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     checkExp("age(timestamp '2001-04-10 0:0:0')");
     checkExp("age(timestamp '2001-04-10 0:0:0', timestamp '2000-04-10 0:0:0')");
     checkExpType("age(timestamp '2001-04-10 0:0:0')",
-            "VARCHAR NOT NULL");
+        "VARCHAR NOT NULL");
     checkExpType("age(timestamp '2001-04-10 0:0:0', timestamp '2000-04-10 0:0:0')",
-            "VARCHAR NOT NULL");
+        "VARCHAR NOT NULL");
   }
 }
 
