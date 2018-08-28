@@ -255,9 +255,7 @@ public class RexImpTable {
     defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
     defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
 
-    final AgeImplementor ageImplementor = new AgeImplementor(BuiltInMethod.AGE.method.getName(),
-        BuiltInMethod.AGE_ONE_TIMESTAMP.method,
-        BuiltInMethod.AGE_TWO_TIMESTAMPS.method);
+    final AgeImplementor ageImplementor = new AgeImplementor(BuiltInMethod.AGE.method.getName());
     defineImplementor(AGE, NullPolicy.STRICT, ageImplementor, false);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
@@ -1754,30 +1752,27 @@ public class RexImpTable {
 
   /** Implementor for the {@code AGE} function. */
   private static class AgeImplementor extends MethodNameImplementor {
-    final Method oneTimestampMethod;
-    final Method twoTimestampsMethod;
 
-    AgeImplementor(String methodName, Method oneTimestampMethod, Method twoTimestampsMethod) {
+    AgeImplementor(String methodName) {
       super(methodName);
-      this.oneTimestampMethod = oneTimestampMethod;
-      this.twoTimestampsMethod = twoTimestampsMethod;
     }
 
     public Expression implement(RexToLixTranslator translator, RexCall call,
         List<Expression> translatedOperands) {
-
       final Expression root = translator.getRoot();
       switch (call.getOperands().size()) {
       case 1:
         return Expressions.call(
-          BuiltInMethod.AGE_ONE_TIMESTAMP.method,
+          BuiltInMethod.AGE.method,
           translatedOperands.get(0),
+          Expressions.constant(null),
           root);
       case 2:
         return Expressions.call(
-          BuiltInMethod.AGE_TWO_TIMESTAMPS.method,
+          BuiltInMethod.AGE.method,
           translatedOperands.get(0),
-          translatedOperands.get(1));
+          translatedOperands.get(1),
+          Expressions.constant(null));
       default:
         throw new AssertionError();
       }

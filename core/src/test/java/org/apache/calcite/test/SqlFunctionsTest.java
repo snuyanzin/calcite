@@ -824,9 +824,9 @@ public class SqlFunctionsTest {
    * testing AGE function
    */
   @Test public void testAge() {
-    assertEquals("12 days", age(11000000000L, 10000000000L));
+    assertEquals("12 days", age(11000000000L, 10000000000L, null));
     DummyTestDataContext dtdc = new DummyTestDataContext();
-    assertEquals("41 years 6 mons 18 days", age(110000000L, dtdc));
+    assertEquals("41 years 6 mons 18 days", age(110000000L, null, dtdc));
   }
   /**
    * Dummy root context for getting the current date

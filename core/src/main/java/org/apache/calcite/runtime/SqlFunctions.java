@@ -1918,12 +1918,8 @@ public class SqlFunctions {
     }
     return v - remainder;
   }
-  public static String age(Long ts1, DataContext root) {
-    return age(ts1, null, root);
-  }
-  public static String age(Long ts1, Long ts2) {
-    return age(ts1, ts2, null);
-  }
+
+  /** SQL {@code AGE} function. */
   public static String age(Long ts1, Long ts2, DataContext root) {
     LocalDateTime ldt2 = null;
     if (ts2 == null) {
