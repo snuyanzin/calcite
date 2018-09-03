@@ -4979,8 +4979,9 @@ SqlCall MatchRecognizeNavigationPhysical() :
 SqlNode NamedFunctionCall() :
 {
     final SqlFunctionCategory funcType;
-    final SqlIdentifier qualifiedName;
+    SqlIdentifier qualifiedName;
     final Span s;
+    final Span sNullTreatment;
     final List<SqlNode> args;
     SqlCall call;
     final Span filterSpan;
@@ -5017,30 +5018,17 @@ SqlNode NamedFunctionCall() :
     )
     [
         LOOKAHEAD(2) <IGNORE> <NULLS> {
+            qualifiedName = qualifiedName.plus(unquotedIdentifier(), getPos());
             nullTreatment = true;
         }
     |
         LOOKAHEAD(2) <RESPECT> <NULLS> {
+            sNullTreatment = span();
             nullTreatment = false;
         }
     ]
     {
-        SqlOperator op = null;
-        if (nullTreatment) {
-            switch (qualifiedName.getSimple()) {
-               case "FIRST_VALUE":
-                   op = SqlStdOperatorTable.FIRST_VALUE_IGNORE_NULLS;
-                   break;
-               case "LAST_VALUE":
-                   op = SqlStdOperatorTable.LAST_VALUE_IGNORE_NULLS;
-                   break;
-            }
-        }
-        if (op == null) {
-          call = createCall(qualifiedName, s.end(this), funcType, quantifier, args);
-        } else {
-          call = op.createCall(s.end(this), args);
-        }
+          call = createCall(nullTreatmentQualifiedName(qualifiedName, nullTreatment), s.end(this), funcType, quantifier, args);
     }
     [
         <FILTER> { filterSpan = span(); }
@@ -5065,6 +5053,22 @@ SqlNode NamedFunctionCall() :
     ]
     {
         return call;
+    }
+}
+
+SqlIdentifier nullTreatmentQualifiedName(SqlIdentifier qualifiedName, boolean nullTreatment) :
+{
+}
+{
+    {
+    if (nullTreatment) {
+        if (qualifiedName.getSimple().equals(SqlStdOperatorTable.FIRST_VALUE.getName())) {
+           return new SqlIdentifier(SqlStdOperatorTable.FIRST_VALUE_IGNORE_NULLS.getName(), qualifiedName.getParserPosition());
+        } else if (qualifiedName.getSimple().equals(SqlStdOperatorTable.LAST_VALUE.getName())) {
+           return new SqlIdentifier(SqlStdOperatorTable.LAST_VALUE_IGNORE_NULLS.getName(), qualifiedName.getParserPosition());
+        }
+    }
+    return qualifiedName;
     }
 }
 
