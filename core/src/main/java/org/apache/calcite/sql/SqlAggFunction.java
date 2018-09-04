@@ -34,7 +34,7 @@ import java.util.List;
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;
   private final boolean requiresOver;
-  private final boolean ignoreNulls;
+  private final boolean isNullTreatmentAllowed;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -94,12 +94,12 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver,
-      boolean ignoreNulls) {
+      boolean isNullTreatmentAllowed) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, null, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
-    this.ignoreNulls = ignoreNulls;
+    this.isNullTreatmentAllowed = isNullTreatmentAllowed;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -133,8 +133,8 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
     return requiresOver;
   }
 
-  @Override public final boolean ignoreNulls() {
-    return ignoreNulls;
+  @Override public final boolean isNullTreatmentAllowed() {
+    return isNullTreatmentAllowed;
   }
 
   @Deprecated // to be removed before 2.0

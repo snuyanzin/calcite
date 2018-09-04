@@ -4981,13 +4981,12 @@ SqlNode NamedFunctionCall() :
     final SqlFunctionCategory funcType;
     SqlIdentifier qualifiedName;
     final Span s;
-    final Span sNullTreatment;
     final List<SqlNode> args;
     SqlCall call;
     final Span filterSpan;
     final SqlNode filter;
     final SqlNode over;
-    boolean nullTreatment = false;
+    Boolean nullTreatment = null;
     SqlLiteral quantifier = null;
 }
 {
@@ -5018,12 +5017,10 @@ SqlNode NamedFunctionCall() :
     )
     [
         LOOKAHEAD(2) <IGNORE> <NULLS> {
-            qualifiedName = qualifiedName.plus(unquotedIdentifier(), getPos());
             nullTreatment = true;
         }
     |
         LOOKAHEAD(2) <RESPECT> <NULLS> {
-            sNullTreatment = span();
             nullTreatment = false;
         }
     ]
@@ -5056,11 +5053,14 @@ SqlNode NamedFunctionCall() :
     }
 }
 
-SqlIdentifier nullTreatmentQualifiedName(SqlIdentifier qualifiedName, boolean nullTreatment) :
+SqlIdentifier nullTreatmentQualifiedName(SqlIdentifier qualifiedName, Boolean nullTreatment) :
 {
 }
 {
     {
+    if (nullTreatment == null) {
+      return qualifiedName;
+    }
     if (nullTreatment) {
         if (qualifiedName.getSimple().equals(SqlStdOperatorTable.FIRST_VALUE.getName())) {
            return new SqlIdentifier(SqlStdOperatorTable.FIRST_VALUE_IGNORE_NULLS.getName(), qualifiedName.getParserPosition());

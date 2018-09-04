@@ -770,7 +770,7 @@ public abstract class SqlOperator {
     return false;
   }
 
-  public boolean ignoreNulls() {
+  public boolean isNullTreatmentAllowed() {
     return false;
   }
 

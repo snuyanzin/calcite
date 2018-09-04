@@ -894,13 +894,25 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>LEAD</code> aggregate function.
    */
   public static final SqlAggFunction LEAD =
-      new SqlLeadLagAggFunction(SqlKind.LEAD);
+      new SqlLeadLagAggFunction(SqlKind.LEAD, false);
+
+  /**
+   * <code>LAST_VALUE</code> aggregate function.
+   */
+  public static final SqlAggFunction LEAD_IGNORE_NULLS =
+      new SqlLeadLagAggFunction(SqlKind.LEAD_IGNORE_NULLS, true);
 
   /**
    * <code>LAG</code> aggregate function.
    */
   public static final SqlAggFunction LAG =
-      new SqlLeadLagAggFunction(SqlKind.LAG);
+      new SqlLeadLagAggFunction(SqlKind.LAG, false);
+
+  /**
+   * <code>LAST_VALUE</code> aggregate function.
+   */
+  public static final SqlAggFunction LAG_IGNORE_NULLS =
+      new SqlLeadLagAggFunction(SqlKind.LAG_IGNORE_NULLS, true);
 
   /**
    * <code>NTILE</code> aggregate function.

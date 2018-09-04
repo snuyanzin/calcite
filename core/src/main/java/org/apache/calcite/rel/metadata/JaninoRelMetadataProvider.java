@@ -391,7 +391,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     throw new AssertionError("not found: " + declaringClass);
   }
 
-  /** Returns e.g. ", ignoreNulls". */
+  /** Returns e.g. ", isNullTreatmentAllowed". */
   private static StringBuilder argList(StringBuilder buff, Method method) {
     for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
       buff.append(", a").append(t.i);
@@ -399,7 +399,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return buff;
   }
 
-  /** Returns e.g. ", ignoreNulls". */
+  /** Returns e.g. ", isNullTreatmentAllowed". */
   private static StringBuilder safeArgList(StringBuilder buff, Method method) {
     for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
       if (Primitive.is(t.e)) {
@@ -417,7 +417,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return buff;
   }
 
-  /** Returns e.g. ",\n boolean ignoreNulls". */
+  /** Returns e.g. ",\n boolean isNullTreatmentAllowed". */
   private static StringBuilder paramList(StringBuilder buff, Method method) {
     for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())) {
       buff.append(",\n      ").append(t.e.getName()).append(" a").append(t.i);

@@ -90,133 +90,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.OracleSqlOperatorTable.TRANSLATE3;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CONCAT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COUNT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_CATALOG;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_PATH;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_ROLE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIME;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DATETIME_PLUS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DEFAULT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DEGREES;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DENSE_RANK;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ELEMENT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXP;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FIRST_VALUE_IGNORE_NULLS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FUSION;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING_ID;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUP_ID;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_A_SET;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_EMPTY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_NULL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ITEM;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE_IGNORE_NULLS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LIKE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIME;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOCALTIMESTAMP;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOG10;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOWER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MAX;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MEMBER_OF;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MIN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS_DATE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT_DISTINCT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION_DISTINCT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEXT_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_LIKE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SIMILAR_TO;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSITION;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POWER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RADIANS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND_INTEGER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGR_COUNT;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW_NUMBER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIGN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIMILAR_TO;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SINGLE_VALUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SLICE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBMULTISET_OF;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUM0;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SYSTEM_USER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRUNCATE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.*;
 
 /**
  * Contains implementations of Rex operators as Java code.
@@ -468,6 +342,7 @@ public class RexImpTable {
     winAggMap.put(NTH_VALUE, constructorSupplier(NthValueImplementor.class));
     winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
     winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
+    winAggMap.put(LEAD_IGNORE_NULLS, constructorSupplier(LeadImplementor.class));
     winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
     winAggMap.put(NTILE, constructorSupplier(NtileImplementor.class));
     winAggMap.put(COUNT, constructorSupplier(CountWinImplementor.class));
@@ -1738,6 +1613,77 @@ public class RexImpTable {
   public static class LagImplementor extends LeadLagImplementor {
     protected LagImplementor() {
       super(false);
+    }
+  }
+
+  /** Implementor for the {@code LEAD} and {@code LAG} windowed
+   * aggregate functions. */
+  static class LeadLagIgnoreNullsImplementor implements WinAggImplementor {
+    private final boolean isLead;
+
+    protected LeadLagIgnoreNullsImplementor(boolean isLead) {
+      this.isLead = isLead;
+    }
+
+    public List<Type> getStateType(AggContext info) {
+      return Collections.emptyList();
+    }
+
+    public void implementReset(AggContext info, AggResetContext reset) {
+      // no op
+    }
+
+    public void implementAdd(AggContext info, AggAddContext add) {
+      // no op
+    }
+
+    public boolean needCacheWhenFrameIntact() {
+      return false;
+    }
+
+    public Expression implementResult(AggContext info,
+                                      AggResultContext result) {
+      WinAggResultContext winResult = (WinAggResultContext) result;
+
+      List<RexNode> rexArgs = winResult.rexArguments();
+
+      ParameterExpression res = Expressions.parameter(0, info.returnType(),
+              result.currentBlock().newName(isLead ? "lead" : "lag"));
+
+      Expression offset;
+      RexToLixTranslator currentRowTranslator =
+              winResult.rowTranslator(
+                      winResult.computeIndex(Expressions.constant(0), SeekType.SET));
+      if (rexArgs.size() >= 2) {
+        // lead(x, offset) or lead(x, offset, default)
+        offset = currentRowTranslator.translate(
+                rexArgs.get(1), int.class);
+      } else {
+        offset = Expressions.constant(1);
+      }
+      if (!isLead) {
+        offset = Expressions.negate(offset);
+      }
+      Expression dstIndex = winResult.computeIndex(offset, SeekType.SET);
+
+      Expression rowInRange = winResult.rowInPartition(dstIndex);
+
+      BlockBuilder thenBlock = result.nestBlock();
+      Expression lagResult = winResult.rowTranslator(dstIndex).translate(
+              rexArgs.get(0), res.type);
+      thenBlock.add(Expressions.statement(Expressions.assign(res, lagResult)));
+      result.exitBlock();
+      BlockStatement thenBranch = thenBlock.toBlock();
+
+      Expression defaultValue = rexArgs.size() == 3
+              ? currentRowTranslator.translate(rexArgs.get(2), res.type)
+              : getDefaultValue(res.type);
+
+      result.currentBlock().add(Expressions.declare(0, res, null));
+      result.currentBlock().add(
+              Expressions.ifThenElse(rowInRange, thenBranch,
+                      Expressions.statement(Expressions.assign(res, defaultValue))));
+      return res;
     }
   }
 

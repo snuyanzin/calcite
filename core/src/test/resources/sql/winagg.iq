@@ -110,22 +110,24 @@ select *, first_value(deptno) over () from emp;
 select *,
   first_value(ename) over (),
   first_value(ename) ignore nulls over (),
+  first_value(ename) respect nulls over (),
   last_value(ename) over (),
-  last_value(ename) ignore nulls over ()
+  last_value(ename) ignore nulls over (),
+  last_value(ename) respect nulls over ()
 from emp;
-+-------+--------+--------+--------+--------+--------+--------+
-| ENAME | DEPTNO | GENDER | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 |
-+-------+--------+--------+--------+--------+--------+--------+
-| Adam  |     50 | M      | Jane   | Jane   | Wilma  | Wilma  |
-| Alice |     30 | F      | Jane   | Jane   | Wilma  | Wilma  |
-| Bob   |     10 | M      | Jane   | Jane   | Wilma  | Wilma  |
-| Eric  |     20 | M      | Jane   | Jane   | Wilma  | Wilma  |
-| Eve   |     50 | F      | Jane   | Jane   | Wilma  | Wilma  |
-| Grace |     60 | F      | Jane   | Jane   | Wilma  | Wilma  |
-| Jane  |     10 | F      | Jane   | Jane   | Wilma  | Wilma  |
-| Susan |     30 | F      | Jane   | Jane   | Wilma  | Wilma  |
-| Wilma |        | F      | Jane   | Jane   | Wilma  | Wilma  |
-+-------+--------+--------+--------+--------+--------+--------+
++-------+--------+--------+--------+--------+--------+--------+--------+--------+
+| ENAME | DEPTNO | GENDER | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 |
++-------+--------+--------+--------+--------+--------+--------+--------+--------+
+| Adam  |     50 | M      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Alice |     30 | F      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Bob   |     10 | M      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Eric  |     20 | M      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Eve   |     50 | F      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Grace |     60 | F      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Jane  |     10 | F      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Susan |     30 | F      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
+| Wilma |        | F      | Jane   | Jane   | Jane   | Wilma  | Wilma  | Wilma  |
++-------+--------+--------+--------+--------+--------+--------+--------+--------+
 (9 rows)
 
 !ok
@@ -134,22 +136,24 @@ from emp;
 select *,
   first_value(ename) over (partition by deptno),
   first_value(ename) ignore nulls over (partition by deptno),
+  first_value(ename) respect nulls over (partition by deptno),
   last_value(ename) over (partition by deptno),
-  last_value(ename) ignore nulls over (partition by deptno)
+  last_value(ename) ignore nulls over (partition by deptno),
+  last_value(ename) respect nulls over (partition by deptno)
 from emp;
-+-------+--------+--------+--------+--------+--------+--------+
-| ENAME | DEPTNO | GENDER | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 |
-+-------+--------+--------+--------+--------+--------+--------+
-| Adam  |     50 | M      | Adam   | Adam   | Eve    | Eve    |
-| Alice |     30 | F      | Susan  | Susan  | Alice  | Alice  |
-| Bob   |     10 | M      | Jane   | Jane   | Bob    | Bob    |
-| Eric  |     20 | M      | Eric   | Eric   | Eric   | Eric   |
-| Eve   |     50 | F      | Adam   | Adam   | Eve    | Eve    |
-| Grace |     60 | F      | Grace  | Grace  | Grace  | Grace  |
-| Jane  |     10 | F      | Jane   | Jane   | Bob    | Bob    |
-| Susan |     30 | F      | Susan  | Susan  | Alice  | Alice  |
-| Wilma |        | F      | Wilma  | Wilma  | Wilma  | Wilma  |
-+-------+--------+--------+--------+--------+--------+--------+
++-------+--------+--------+--------+--------+--------+--------+--------+--------+
+| ENAME | DEPTNO | GENDER | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 |
++-------+--------+--------+--------+--------+--------+--------+--------+--------+
+| Adam  |     50 | M      | Adam   | Adam   | Adam   | Eve    | Eve    | Eve    |
+| Alice |     30 | F      | Susan  | Susan  | Susan  | Alice  | Alice  | Alice  |
+| Bob   |     10 | M      | Jane   | Jane   | Jane   | Bob    | Bob    | Bob    |
+| Eric  |     20 | M      | Eric   | Eric   | Eric   | Eric   | Eric   | Eric   |
+| Eve   |     50 | F      | Adam   | Adam   | Adam   | Eve    | Eve    | Eve    |
+| Grace |     60 | F      | Grace  | Grace  | Grace  | Grace  | Grace  | Grace  |
+| Jane  |     10 | F      | Jane   | Jane   | Jane   | Bob    | Bob    | Bob    |
+| Susan |     30 | F      | Susan  | Susan  | Susan  | Alice  | Alice  | Alice  |
+| Wilma |        | F      | Wilma  | Wilma  | Wilma  | Wilma  | Wilma  | Wilma  |
++-------+--------+--------+--------+--------+--------+--------+--------+--------+
 (9 rows)
 
 !ok
@@ -541,6 +545,29 @@ from
 | 1 |    1 |    2 |
 +---+------+------+
 (1 row)
+
+!ok
+
+# NTH_VALUE
+select emp."ENAME", emp."DEPTNO",
+ nth_value(emp."DEPTNO", 1) ignore nulls over() as "first_value",
+ nth_value(emp."DEPTNO", 1) respect nulls over() as "second_value",
+ min(emp."DEPTNO") respect nulls over()
+from emp order by emp."ENAME";
++-------+--------+-------------+--------------+
+| ENAME | DEPTNO | first_value | second_value |
++-------+--------+-------------+--------------+
+| Adam  |     50 |          10 |           10 |
+| Alice |     30 |          10 |           10 |
+| Bob   |     10 |          10 |           10 |
+| Eric  |     20 |          10 |           10 |
+| Eve   |     50 |          10 |           10 |
+| Grace |     60 |          10 |           10 |
+| Jane  |     10 |          10 |           10 |
+| Susan |     30 |          10 |           10 |
+| Wilma |        |          10 |           10 |
++-------+--------+-------------+--------------+
+(9 rows)
 
 !ok
 

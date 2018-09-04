@@ -847,8 +847,14 @@ public enum SqlKind {
   /** The {@code LEAD} aggregate function. */
   LEAD,
 
+  /** The {@code LEAD} aggregate function. */
+  LEAD_IGNORE_NULLS,
+
   /** The {@code LAG} aggregate function. */
   LAG,
+
+  /** The {@code LEAD} aggregate function. */
+  LAG_IGNORE_NULLS,
 
   /** The {@code FIRST_VALUE} aggregate function. */
   FIRST_VALUE,

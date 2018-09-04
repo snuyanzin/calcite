@@ -69,8 +69,9 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
         return transform.transformType(binding, type);
       });
 
-  public SqlLeadLagAggFunction(SqlKind kind) {
-    super(kind.name(),
+  public SqlLeadLagAggFunction(SqlKind kind, boolean ignoreNulls) {
+    super(
+        kind.name(),
         null,
         kind,
         RETURN_TYPE,
@@ -78,14 +79,12 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
         OPERAND_TYPES,
         SqlFunctionCategory.NUMERIC,
         false,
-        true);
+        true,
+        ignoreNulls);
     Preconditions.checkArgument(kind == SqlKind.LEAD
-        || kind == SqlKind.LAG);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public SqlLeadLagAggFunction(boolean isLead) {
-    this(isLead ? SqlKind.LEAD : SqlKind.LAG);
+        || kind == SqlKind.LAG
+        || kind == SqlKind.LEAD_IGNORE_NULLS
+        || kind == SqlKind.LAG_IGNORE_NULLS);
   }
 
   @Override public boolean allowsFraming() {
