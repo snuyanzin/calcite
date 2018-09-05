@@ -6433,6 +6433,12 @@ public abstract class SqlOperatorBaseTest {
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
     tester.checkScalar(
         "floor(time '12:34:56' to minute)", "12:34:00", "TIME(0) NOT NULL");
+    tester.checkScalar("floor(timestamp '2015-02-19 12:34:56.728' to nanosecond)",
+        "2015-02-19 12:34:56.728", "TIMESTAMP(3) NOT NULL");
+    tester.checkScalar("floor(timestamp '2015-02-19 12:34:56.019' to microsecond)",
+        "2015-02-19 12:34:56.019", "TIMESTAMP(3) NOT NULL");
+    tester.checkScalar("floor(timestamp '2015-02-19 12:34:56.123' to millisecond)",
+        "2015-02-19 12:34:56.123", "TIMESTAMP(3) NOT NULL");
     tester.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to second)",
         "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
     tester.checkScalar("floor(timestamp '2015-02-19 12:34:56' to minute)",
@@ -6462,8 +6468,14 @@ public abstract class SqlOperatorBaseTest {
         "12:35:00", "TIME(0) NOT NULL");
     tester.checkScalar("ceil(time '12:59:56' to minute)",
         "13:00:00", "TIME(0) NOT NULL");
-    tester.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to second)",
-        "2015-02-19 12:34:57", "TIMESTAMP(2) NOT NULL");
+    tester.checkScalar("ceil(timestamp '2015-02-19 12:34:57.718' to nanosecond)",
+        "2015-02-19 12:34:57.718", "TIMESTAMP(3) NOT NULL");
+    tester.checkScalar("ceil(timestamp '2015-02-19 12:34:57.738' to microsecond)",
+        "2015-02-19 12:34:57.738", "TIMESTAMP(3) NOT NULL");
+    tester.checkScalar("ceil(timestamp '2015-02-19 12:34:57.357' to millisecond)",
+        "2015-02-19 12:34:57.357", "TIMESTAMP(3) NOT NULL");
+    tester.checkScalar("ceil(timestamp '2015-02-19 12:34:57.78' to second)",
+        "2015-02-19 12:34:58", "TIMESTAMP(2) NOT NULL");
     tester.checkScalar("ceil(timestamp '2015-02-19 12:34:56.00' to second)",
         "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
     tester.checkScalar("ceil(timestamp '2015-02-19 12:34:56' to minute)",

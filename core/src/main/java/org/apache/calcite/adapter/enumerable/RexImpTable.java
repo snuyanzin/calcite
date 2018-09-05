@@ -1797,6 +1797,10 @@ public class RexImpTable {
         case MONTH:
           return Expressions.call(floorMethod, tur,
               call(operand, type, TimeUnit.DAY));
+        case MILLISECOND:
+        case MICROSECOND:
+        case NANOSECOND:
+          return operand;
         default:
           return call(operand, type, timeUnitRange.startUnit);
         }
