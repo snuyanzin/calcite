@@ -2611,15 +2611,16 @@ EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([1, 0])
 !plan
 
 select
-  listagg(ename) within group(order by deptno, ename) as default_listagg_sep,
-  listagg(ename, '; ') within group(order by deptno, ename desc) as custom_listagg_sep
+  listagg(ename) within group(order by deptno, ename) as default_sep,
+  listagg(cast(deptno as varchar), '!') within group(order by deptno desc) as non_string,
+  listagg(cast(round(sqrt(deptno + 1)) as varchar), '; ') within group(order by deptno) as expr
 from emp group by gender;
-+----------------------------------+---------------------------------------+
-| DEFAULT_LISTAGG_SEP              | CUSTOM_LISTAGG_SEP                    |
-+----------------------------------+---------------------------------------+
-| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
-| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
-+----------------------------------+---------------------------------------+
++----------------------------------+----------------+---------------+
+| DEFAULT_SEP                      | NON_STRING     | EXPR          |
++----------------------------------+----------------+---------------+
+| Bob,Eric,Adam                    | 50!20!10       | 3; 5; 7       |
+| Jane,Alice,Susan,Eve,Grace,Wilma | 60!50!30!30!10 | 3; 6; 6; 7; 8 |
++----------------------------------+----------------+---------------+
 (2 rows)
 
 !ok

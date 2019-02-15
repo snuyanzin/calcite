@@ -175,7 +175,6 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(LAG)",
           "KEYWORD(LAST_VALUE)",
           "KEYWORD(LEAD)",
-          "KEYWORD(LISTAGG)",
           "KEYWORD(LN)",
           "KEYWORD(LOCALTIME)",
           "KEYWORD(LOCALTIMESTAMP)",

@@ -1353,24 +1353,35 @@ public class RexImpTable {
   static class ListaggImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
-      reset.currentBlock().add(
-          Expressions.statement(
-              Expressions.assign(reset.accumulator().get(0), NULL_EXPR)));
+      try {
+        System.out.println("acc type before : " + reset.accumulator().get(0).type);
+        reset.currentBlock().add(
+            Expressions.statement(
+                Expressions.assign(reset.accumulator().get(0),
+                    Expressions.new_(StringBuilder.class))));
+        System.out.println("accumulator: " + reset.accumulator());
+        System.out.println("acc: " + reset.accumulator().get(0));
+        System.out.println("acc type : " + reset.accumulator().get(0).type);
+      } catch (Exception e) {
+        e.printStackTrace();
+        throw new RuntimeException(e);
+      }
     }
 
     @Override public void implementNotNullAdd(AggContext info,
         AggAddContext add) {
-      final Expression accValue = add.accumulator().get(0);
+      final Expression accValue = Expressions.new_(StringBuilder.class, add.accumulator().get(0));
       final Expression arg0 = add.arguments().get(0);
       final Expression arg1 = add.arguments().size() == 2
           ? add.arguments().get(1) : COMMA_EXPR;
-      final Expression result = Expressions.condition(
-          Expressions.equal(NULL_EXPR, accValue),
-          arg0,
-          Expressions.call(BuiltInMethod.STRING_CONCAT.method, accValue,
-              Expressions.call(BuiltInMethod.STRING_CONCAT.method, arg1, arg0)));
-
-      add.currentBlock().add(Expressions.statement(Expressions.assign(accValue, result)));
+      System.out.println(accValue.type);
+      System.out.println(Expressions.new_(StringBuilder.class).type);
+      final Expression result =
+          Expressions.call(
+              Expressions.call(accValue, "append", arg1),
+              "append", arg0);
+      add.currentBlock().add(
+          Expressions.statement(Expressions.assign(accValue, result)));
     }
   }
 

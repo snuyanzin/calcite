@@ -99,6 +99,52 @@ public class BlockBuilderTest {
     return outer;
   }
 
+  private BlockBuilder appendBlockWithSameVariable2(
+      Expression initializer1, Expression initializer2) {
+    try {
+      BlockBuilder outer = new BlockBuilder();
+      ParameterExpression outerX = Expressions.parameter(StringBuilder.class, "sb");
+      outer.add(Expressions.declare(0, outerX, initializer1));
+      outer.add(
+          Expressions.statement(
+              Expressions.assign(
+                  outerX,
+                  Expressions.new_(
+                      StringBuilder.class.getConstructor(String.class),
+                      Expressions.constant("1")))));
+      System.out.println(outerX.type);
+      outer.add(
+          Expressions.statement(
+              Expressions.call(
+                  outerX, "append",
+                  Expressions.new_(
+                      StringBuilder.class.getConstructor(String.class),
+                      Expressions.constant("1")))));
+      BlockBuilder inner = new BlockBuilder();
+      ParameterExpression innerX = Expressions.parameter(int.class, "x");
+      inner.add(Expressions.declare(0, innerX, initializer2));
+      inner.add(Expressions.statement(Expressions.assign(innerX, Expressions.constant(42))));
+      inner.add(Expressions.return_(null, innerX));
+      outer.append("x", inner.toBlock());
+      return outer;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test public void testRenameVariablesWithEmptyInitializer2() {
+    BlockBuilder outer = appendBlockWithSameVariable2(null, null);
+
+    assertEquals("x in the second block should be renamed to avoid name clash",
+        "{\n"
+            + "  int x;\n"
+            + "  x = 1;\n"
+            + "  int x0;\n"
+            + "  x0 = 42;\n"
+            + "}\n",
+        Expressions.toString(outer.toBlock()));
+  }
+
   @Test public void testRenameVariablesWithEmptyInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(null, null);
 

@@ -5953,6 +5953,10 @@ public abstract class SqlOperatorBaseTest {
     tester.checkFails("^listagg('1', '2', '3')^",
         "Invalid number of arguments to function 'LISTAGG'. Was expecting 1 arguments",
         false);
+    tester.checkFails("^listagg(2, 3)^",
+        "Cannot apply 'LISTAGG' to arguments of type 'LISTAGG\\(<INTEGER>, <INTEGER>\\)'\\. "
+        + "Supported form\\(s\\): 'LISTAGG\\(<STRING>\\)'\n"
+        + "'LISTAGG\\(<STRING>, <STRING>\\)'", false);
     final String[] values = {"'hello'", "CAST(null AS CHAR)", "'world'", "'!'"};
     tester.checkAgg("listagg(x)", values, "hello,world,!", (double) 0);
   }
