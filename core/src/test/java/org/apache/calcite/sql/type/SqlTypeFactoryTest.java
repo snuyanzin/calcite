@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
 
 import com.google.common.collect.ImmutableList;
@@ -54,6 +55,24 @@ class SqlTypeFactoryTest {
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlBigInt, f.sqlInt));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.BIGINT));
+  }
+
+  @Test
+  void testCALCITE4603() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    int maxPrecision = 10;
+    int minPrecision = 1;
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(typeFactory.createTypeWithNullability(
+                typeFactory.createArrayType(typeFactory.createTypeWithNullability(
+                    typeFactory.createSqlType(SqlTypeName.CHAR, maxPrecision), false), -1), false),
+                typeFactory.createTypeWithNullability(
+                    typeFactory.createArrayType(typeFactory.createTypeWithNullability(
+                        typeFactory.createSqlType(SqlTypeName.CHAR, minPrecision), false), -1), false)));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ARRAY));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(maxPrecision));
   }
 
   @Test void testLeastRestrictiveWithNullability() {

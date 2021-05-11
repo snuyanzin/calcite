@@ -18,7 +18,10 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
+import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -217,6 +220,56 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       return leastRestrictiveStructuredType(types);
     }
     return null;
+  }
+
+  protected @Nullable RelDataType leastRestrictiveCollectionType(
+      final List<RelDataType> types, SqlTypeName sqlTypeName) {
+    boolean isKeyNullable = false;
+    boolean isValueNullable = false;
+    for (int i = 0; i < types.size(); i += 2) {
+      isKeyNullable |= types.get(i).isNullable();
+      isValueNullable |= types.get(i + 1).isNullable();
+    }
+    RelDataType type = leastRestrictive(
+        Util.transform(types, RelDataType::getComponentType)
+    );
+    if (type == null) {
+      return null;
+    }
+    RelDataType resultDataType;
+    switch (sqlTypeName) {
+    case ARRAY: resultDataType = new ArraySqlType(type, isNullable);
+      break;
+    case MAP: resultDataType = new MapSqlType(type, isNullable);
+      break;
+    case MULTISET: resultDataType = new MultisetSqlType(type, isNullable);
+      break;
+    }
+    return createTypeWithNullability(new ArraySqlType(type, isNullable), isNullable);
+  }
+
+  protected @Nullable RelDataType leastRestrictiveArrayMultisetType(
+      final List<RelDataType> types, SqlTypeName sqlTypeName) {
+    boolean isNullable = false;
+    for (RelDataType type : types) {
+      isNullable |= type.isNullable();
+    }
+    RelDataType type = leastRestrictive(
+        Util.transform(types, RelDataType::getComponentType)
+    );
+    if (type == null) {
+      return null;
+    }
+    RelDataType resultDataType;
+    switch (sqlTypeName) {
+    case ARRAY: resultDataType = new ArraySqlType(type, isNullable);
+                break;
+    case MAP: resultDataType = new MapSqlType(type, isNullable);
+      break;
+    case MULTISET: resultDataType = new MultisetSqlType(type, isNullable);
+      break;
+    }
+    return createTypeWithNullability(new ArraySqlType(type, isNullable), isNullable);
   }
 
   protected @Nullable RelDataType leastRestrictiveStructuredType(

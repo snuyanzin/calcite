@@ -1399,6 +1399,10 @@ public abstract class SqlTypeUtil {
     final RelDataTypeFamily family1 = family(type1);
     final RelDataTypeFamily family2 = family(type2);
     if (family1 == family2) {
+      if (family1 == SqlTypeFamily.ARRAY) {
+        return isComparable(type1.getComponentType(),
+            type2.getComponentType());
+      }
       return true;
     }
 

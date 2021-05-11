@@ -638,6 +638,15 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
+  /** {@code ARRAY_REVERSE} function (BigQuery semantics). */
+  ARRAY_REVERSE,
+
+  /** {@code GENERATE_ARRAY} function (BigQuery semantics). */
+  GENERATE_ARRAY,
+
+  /** {@code ARRAY_CONCAT} function (BigQuery semantics). */
+  ARRAY_CONCAT,
+
   /** {@code SUBSTR} function (BigQuery semantics). */
   SUBSTR_BIG_QUERY,
 

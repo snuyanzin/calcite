@@ -40,6 +40,14 @@ class SqlTypeFixture {
       typeFactory.createSqlType(SqlTypeName.VARCHAR), false);
   final RelDataType sqlChar = typeFactory.createTypeWithNullability(
       typeFactory.createSqlType(SqlTypeName.CHAR), false);
+  final RelDataType sqlChar1 = typeFactory.createTypeWithNullability(
+      typeFactory.createSqlType(SqlTypeName.CHAR, 1), false);
+  final RelDataType sqlChar5 = typeFactory.createTypeWithNullability(
+      typeFactory.createSqlType(SqlTypeName.CHAR, 5), false);
+  final RelDataType sqlCharArray5 = typeFactory.createTypeWithNullability(
+      typeFactory.createArrayType(sqlChar5, -1), false);
+  final RelDataType sqlCharArray1 = typeFactory.createTypeWithNullability(
+      typeFactory.createArrayType(sqlChar1, -1), false);
   final RelDataType sqlVarcharNullable = typeFactory.createTypeWithNullability(
       typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
   final RelDataType sqlNull = typeFactory.createTypeWithNullability(

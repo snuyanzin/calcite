@@ -23,5 +23,6 @@
   </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../calcite-avatica" vcs="Git" />
   </component>
 </project>

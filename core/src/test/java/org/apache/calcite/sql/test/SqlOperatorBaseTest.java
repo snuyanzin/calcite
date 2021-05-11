@@ -5760,6 +5760,64 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
   }
 
+
+  @Test void testArrayDate12() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.checkScalar("array[1, 1.2]", "[1, 1.2]",
+        "DECIMAL(11, 1) NOT NULL ARRAY NOT NULL");
+  }
+
+  @Test void testArrayDate123() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.setFor(SqlLibraryOperators.ARRAY_CONCAT);
+   /* tester.checkScalar("array_concat(array[1,2], array[2, 3])", "[1, 2, 2, 3]",
+        "INTEGER NOT NULL ARRAY NOT NULL");*/
+    /*tester.checkScalar("array_concat(array[1, 2], array[2, null])", "[1, 2, 2, null]",
+        "INTEGER ARRAY NOT NULL");
+    tester.checkScalar("array_concat(array[1, 2], array[cast(null as integer)])", "[1, 2, null]",
+        "INTEGER ARRAY NOT NULL");*/
+    tester.checkScalar("array_concat(array['hello', 'world'], array['!'])", "[hello, world, !]",
+        "CHAR(8) NOT NULL ARRAY NOT NULL");
+  }
+
+  @Test void testArrayDate() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.checkScalar("array[cast('2021-05-10' as date)]", "[2021-05-10]",
+        "DATE NOT NULL ARRAY NOT NULL");
+  }
+
+  @Test void testArray() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.checkScalar("array[array['hello'], array['world'], array['!']]", "[hello, world, 2]",
+        "CHAR(5) NOT NULL ARRAY NOT NULL");
+  }
+
+  /** Tests {@code ARRAY_REVERSE} and other datetime functions from BigQuery. */
+  @Test void testArrayReverseFunc() {
+    SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);
+    tester.setFor(SqlLibraryOperators.ARRAY_REVERSE);
+    tester.checkScalar("array_reverse(array[1])", "[1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("array_reverse(array[1, 2])", "[2, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("array_reverse(array[null, 1])", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
+    tester.checkScalar("generate_array(1, 3, 2)", "[1, 3]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("generate_array(1, 3)", "[1, 2, 3]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("generate_array(10, 0, -3)", "[10, 7, 4, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("generate_array(1, 2, -3)", "[]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("generate_array(1, 3, 0.6)", "[1, 1.6, 2.2, 2.8]",
+        "DECIMAL(11, 1) NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("generate_array(1, 3, -0.6)", "[]",
+        "DECIMAL(11, 1) NOT NULL ARRAY NOT NULL");
+    tester.checkScalar("generate_array(1, 3, null)", null,
+        "INTEGER ARRAY");
+  }
+
   /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
   @Test void testUnixSecondsFunc() {
     SqlTester tester = libraryTester(SqlLibrary.BIG_QUERY);

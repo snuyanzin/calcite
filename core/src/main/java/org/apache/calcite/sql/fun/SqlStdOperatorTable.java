@@ -61,6 +61,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -2069,7 +2070,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE,
           null,
-          OperandTypes.DATETIME,
+          OperandTypes.or(OperandTypes.DATETIME,
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTERVAL_YEAR_MONTH)),
           SqlFunctionCategory.TIMEDATE);
 
   /**

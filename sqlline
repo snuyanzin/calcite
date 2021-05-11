@@ -40,7 +40,7 @@ root=$(cd "$(dirname "$root")"; pwd)
 CP=$root/build/libs/sqllineClasspath.jar
 
 if [ "x$CACHE_SQLLINE_CLASSPATH" != "xY" ] || [ ! -f "$CP" ]; then
-  $root/gradlew --console plain -q :buildSqllineClasspath
+  $root/gradlew --console plain -q :buildSqllineClasspath --no-parallel --no-daemon -Pcalcite.avatica.version=1.0.0-dev-master-SNAPSHOT -PenableMavenLocal
 fi
 
 VM_OPTS=

@@ -28,6 +28,7 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -290,6 +291,9 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         if (resultType.getSqlTypeName() == SqlTypeName.ROW) {
           return leastRestrictiveStructuredType(types);
         }
+        if (resultType.getSqlTypeName() == SqlTypeName.ARRAY) {
+          return leastRestrictiveCollectionType(types, SqlTypeName.ARRAY);
+        }
       }
 
       RelDataTypeFamily resultFamily = resultType.getFamily();
@@ -489,6 +493,22 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
             resultType = type;
             return createTypeWithNullability(resultType,
                 nullCount > 0 || nullableCount > 0);
+          }
+        }
+      } else if (SqlTypeUtil.isArray(type)) {
+        RelDataType resultComponentType = resultType.getComponentType();
+        RelDataType componentType = type.getComponentType();
+        if (!resultComponentType.equals(componentType)) {
+          if (componentType.getSqlTypeName().equals(resultComponentType.getSqlTypeName())) {
+            if (componentType.getPrecision() > resultComponentType.getPrecision()) {
+              resultType = type;
+            }
+          } else {
+            RelDataType leastRestrictiveComponentType =
+                leastRestrictiveSqlType(Arrays.asList(resultComponentType, componentType));
+            if (leastRestrictiveComponentType.equals(componentType)) {
+              resultType = type;
+            }
           }
         }
       } else {

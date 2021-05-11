@@ -109,7 +109,9 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
@@ -125,6 +127,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.GENERATE_ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
@@ -513,6 +516,9 @@ public class RexImpTable {
     defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
     defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
     defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
+    defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
+    map.put(GENERATE_ARRAY, new GenerateArrayImplementor());
+    map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
     final MethodImplementor isEmptyImplementor =
         new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
             false);
@@ -2575,6 +2581,113 @@ public class RexImpTable {
         final RexCall call, final List<Expression> argValueList) {
       assert call.getOperands().size() == 1;
       return argValueList.get(0);
+    }
+  }
+
+  /** Implementor for a array concat. */
+  private static class ArrayConcatImplementor extends AbstractRexCallImplementor {
+
+    ArrayConcatImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "array_concat";
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      final BlockBuilder blockBuilder = translator.getBlockBuilder();
+      Expression list =
+          blockBuilder.append("list", Expressions.new_(ArrayList.class), false);
+      for (Expression expression : argValueList) {
+        blockBuilder.add(
+            Expressions.statement(
+                Expressions.call(list, BuiltInMethod.COLLECTION_ADDALL.method, expression)));
+      }
+      return list;
+    }
+  }
+
+  /** Implementor for a gerate value-constructor. */
+  private static class GenerateArrayImplementor
+      extends AbstractRexCallImplementor {
+
+    GenerateArrayImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "generate_array";
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      if (translator.isNullable(call.operands.get(0))
+          || translator.isNullable(call.operands.get(1))
+          || call.operands.size() == 3 && translator.isNullable(call.operands.get(2))) {
+        return Expressions.constant(null);
+      }
+      final BlockBuilder blockBuilder = translator.getBlockBuilder();
+      Expression list =
+          blockBuilder.append("list", Expressions.new_(ArrayList.class), false);
+      Expression start = argValueList.get(0);
+      Expression end = argValueList.get(1);
+      boolean isPrimitive = Primitive.is(start.type) && Primitive.is(end.type)
+          && (argValueList.size() == 2 || Primitive.is(argValueList.get(2).type));
+      final Expression primitiveZero = Expressions.constant(0);
+      final Expression bdZero = Expressions.constant(BigDecimal.ZERO);
+      Expression step;
+      if (isPrimitive) {
+        step = argValueList.size() == 3 ? argValueList.get(2) : Expressions.constant(1L);
+        final ParameterExpression i_ = Expressions.parameter(start.type, "i");
+        blockBuilder.add(
+            Expressions.for_(
+            Expressions.declare(0, i_, start),
+            Expressions.or(
+                Expressions.and(
+                    Expressions.greaterThan(step, primitiveZero),
+                    Expressions.lessThanOrEqual(i_, end)),
+                Expressions.and(
+                    Expressions.greaterThan(primitiveZero, step),
+                    Expressions.lessThanOrEqual(end, i_))
+                ),
+            Expressions.addAssign(i_, step),
+            Expressions.statement(Expressions.call(list, BuiltInMethod.COLLECTION_ADD.method, i_))
+        ));
+      } else {
+        start = Primitive.is(start.type) ? Expressions.new_(BigDecimal.class, start) : start;
+        end = Primitive.is(end.type) ? Expressions.new_(BigDecimal.class, end) : end;
+        if (argValueList.size() == 3) {
+          Expression stepArgument = argValueList.get(2);
+          step = Primitive.is(stepArgument.type)
+              ? Expressions.new_(BigDecimal.class, stepArgument) : stepArgument;
+        } else {
+          step = Expressions.constant(BigDecimal.ONE);
+        }
+
+        final ParameterExpression i_ = Expressions.parameter(start.type, "i");
+        blockBuilder.add(
+            Expressions.for_(
+            Expressions.declare(0, i_, start),
+            Expressions.or(
+                Expressions.and(
+                    Expressions.lessThanOrEqual(
+                        Expressions.call(i_, "compareTo", end), primitiveZero),
+                    Expressions.greaterThanOrEqual(
+                        Expressions.call(step, "compareTo", bdZero), primitiveZero)),
+                Expressions.and(
+                    Expressions.greaterThanOrEqual(
+                        Expressions.call(i_, "compareTo", end), primitiveZero),
+                    Expressions.lessThanOrEqual(
+                        Expressions.call(step, "compareTo", bdZero), primitiveZero))
+                ),
+            Expressions.assign(i_, Expressions.call(i_, "add", step)),
+            Expressions.statement(Expressions.call(list, BuiltInMethod.COLLECTION_ADD.method, i_))
+        ));
+      }
+
+      return list;
     }
   }
 
