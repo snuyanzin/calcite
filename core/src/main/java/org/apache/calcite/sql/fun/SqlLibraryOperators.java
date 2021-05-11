@@ -534,6 +534,42 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
+  /** The "ARRAY_REVERSE(array)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_REVERSE =
+      new SqlFunction("ARRAY_REVERSE",
+          SqlKind.ARRAY_REVERSE,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.SYSTEM);
+
+  /** The "GENERATE_ARRAY(start, end [, step])" function;
+   * generates array of numbers between start and end with step;
+   * if a step is not specified then default is 1. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_ARRAY =
+      new SqlFunction("GENERATE_ARRAY",
+          SqlKind.GENERATE_ARRAY,
+          ReturnTypes.LEAST_RESTRICTIVE
+              .andThen(SqlTypeTransforms.TO_ARRAY).andThen(SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+              OperandTypes.family(
+                  SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)),
+          SqlFunctionCategory.SYSTEM);
+
+  /** The "ARRAY_CONCAT(array [, array]*)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_CONCAT =
+      new SqlFunction("ARRAY_CONCAT",
+          SqlKind.ARRAY_CONCAT,
+          ReturnTypes.LEAST_RESTRICTIVE,
+          null,
+          OperandTypes.SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction FROM_BASE64 =
       new SqlFunction("FROM_BASE64", SqlKind.OTHER_FUNCTION,
