@@ -292,6 +292,9 @@ allprojects {
 
     repositories {
         // RAT and Autostyle dependencies
+        if (enableMavenLocal) {
+            mavenLocal()
+        }
         mavenCentral()
     }
 
