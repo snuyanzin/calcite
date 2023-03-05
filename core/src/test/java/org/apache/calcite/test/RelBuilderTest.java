@@ -96,6 +96,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -4202,8 +4204,28 @@ public class RelBuilderTest {
         root, hasTree(expected));
   }
 
-  @Test void testSemiCorrelatedViaJoin() {
-    RelNode root = buildCorrelateWithJoin(JoinRelType.SEMI);
+  @Test void testSimpleSemiCorrelateViaJoinWithoutConvertCorrelateToJoin() {
+    RelNode root =
+        buildSimpleCorrelateWithJoin(
+            JoinRelType.SEMI,
+            createBuilder(c -> c.withConvertCorrelateToJoin(false)));
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(
+        "Join with correlate id but the id never used should be simplified to a join.",
+        root, hasTree(expected));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testSemiCorrelatedViaJoin(boolean convertCorrelateToJoin) {
+    RelNode root =
+        buildCorrelateWithJoin(
+            JoinRelType.SEMI,
+            createBuilder(c -> c.withConvertCorrelateToJoin(convertCorrelateToJoin)));
     final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{0, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
@@ -4226,8 +4248,27 @@ public class RelBuilderTest {
         root, hasTree(expected));
   }
 
-  @Test void testAntiCorrelateViaJoin() {
-    RelNode root = buildCorrelateWithJoin(JoinRelType.ANTI);
+  @Test void testSimpleAntiCorrelateViaJoinWithoutConvertCorrelateToJoin() {
+    RelNode root =
+        buildSimpleCorrelateWithJoin(
+            JoinRelType.ANTI, createBuilder(c -> c.withConvertCorrelateToJoin(false)));
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(
+        "Join with correlate id but the id never used should be simplified to a join.",
+        root, hasTree(expected));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testAntiCorrelateViaJoin(boolean convertCorrelateToJoin) {
+    RelNode root =
+        buildCorrelateWithJoin(
+            JoinRelType.ANTI,
+            createBuilder(c -> c.withConvertCorrelateToJoin(convertCorrelateToJoin)));
     final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{0, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
@@ -4236,7 +4277,8 @@ public class RelBuilderTest {
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(
         "Correlated anti joins should emmit a correlate with a filter on the right side.",
-        root, hasTree(expected));  }
+        root, hasTree(expected));
+  }
 
   @Test void testSimpleLeftCorrelateViaJoin() {
     RelNode root = buildSimpleCorrelateWithJoin(JoinRelType.LEFT);
@@ -4249,8 +4291,27 @@ public class RelBuilderTest {
         root, hasTree(expected));
   }
 
-  @Test void testLeftCorrelateViaJoin() {
-    RelNode root = buildCorrelateWithJoin(JoinRelType.LEFT);
+  @Test void testSimpleLeftCorrelateViaJoinWithoutConvertCorrelateToJoin() {
+    RelNode root =
+        buildSimpleCorrelateWithJoin(
+            JoinRelType.LEFT, createBuilder(c -> c.withConvertCorrelateToJoin(false)));
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(
+        "Join with correlate id but the id never used should be simplified to a join.",
+        root, hasTree(expected));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testLeftCorrelateViaJoin(boolean convertCorrelateToJoin) {
+    RelNode root =
+        buildCorrelateWithJoin(
+            JoinRelType.LEFT,
+            createBuilder(c -> c.withConvertCorrelateToJoin(convertCorrelateToJoin)));
     final String expected = ""
         + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
@@ -4272,8 +4333,26 @@ public class RelBuilderTest {
         root, hasTree(expected));
   }
 
-  @Test void testInnerCorrelateViaJoin() {
-    RelNode root = buildCorrelateWithJoin(JoinRelType.INNER);
+  @Test void testSimpleInnerCorrelateViaJoinWithoutConvertCorrelateToJoin() {
+    RelNode root =
+        buildSimpleCorrelateWithJoin(
+            JoinRelType.INNER, createBuilder(c -> c.withConvertCorrelateToJoin(false)));
+    final String expected = ""
+        + "LogicalFilter(condition=[=($7, $8)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{}])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat("Join with correlate id but never used should be simplified to a join.",
+        root, hasTree(expected));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testInnerCorrelateViaJoin(boolean convertCorrelateToJoin) {
+    RelNode root =
+        buildCorrelateWithJoin(
+            JoinRelType.INNER,
+            createBuilder(c -> c.withConvertCorrelateToJoin(convertCorrelateToJoin)));
     final String expected = ""
         + "LogicalFilter(condition=[=($7, $8)])\n"
         + "  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
@@ -4310,7 +4389,10 @@ public class RelBuilderTest {
   }
 
   private static RelNode buildSimpleCorrelateWithJoin(JoinRelType type) {
-    final RelBuilder builder = RelBuilder.create(config().build());
+    return buildSimpleCorrelateWithJoin(type, RelBuilder.create(config().build()));
+  }
+
+  private static RelNode buildSimpleCorrelateWithJoin(JoinRelType type, RelBuilder builder) {
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     return builder
         .scan("EMP")
@@ -4324,7 +4406,10 @@ public class RelBuilderTest {
   }
 
   private static RelNode buildCorrelateWithJoin(JoinRelType type) {
-    final RelBuilder builder = RelBuilder.create(config().build());
+    return buildCorrelateWithJoin(type, RelBuilder.create(config().build()));
+  }
+
+  private static RelNode buildCorrelateWithJoin(JoinRelType type, RelBuilder builder) {
     final RexBuilder rexBuilder = builder.getRexBuilder();
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     return builder

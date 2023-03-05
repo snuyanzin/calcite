@@ -508,8 +508,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return identifier;
     }
 
-    List<String> names = requireNonNull(usingNames(join),
-        () -> "usingNames for " + join);
+    List<String> names =
+        requireNonNull(usingNames(join), () -> "usingNames for " + join);
     for (String name : names) {
       if (identifier.getSimple().equals(name)) {
         final List<SqlNode> qualifiedNode = new ArrayList<>();
