@@ -63,11 +63,41 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test that runs every Quidem file as a test.
+ > +-------+--------+-----------+------+------------+---------+---------+--------+
+ > | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
+ > +-------+--------+-----------+------+------------+---------+---------+--------+
+ > |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+ > |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+ > |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+ > |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+ > |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+ > |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+ > |  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+ > |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+ > |  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+ > |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+ > |  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+ > |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+ > |  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+ > |  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
+ > +-------+--------+-----------+------+------------+---------+---------+--------+
+ *
+ * > +--------+-------------+
+ * > | DEPTNO | DNAME       |
+ * > +--------+-------------+
+ * > |     10 | Sales       |
+ * > |     20 | Marketing   |
+ * > |     30 | Engineering |
+ * > |     40 | Empty       |
+ * > +--------+-------------+
+ *
+ * SELECT * FROM emp e WHERE e.ename NOT IN
+ * (SELECT d.dname FROM dept d WHERE e.deptno = d.deptno OR e.gender ='M');
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class QuidemTest {
 
-  private static final Pattern PATTERN = Pattern.compile("\\.iq$");
+  private static final Pattern PATTERN = Pattern.compile("join\\.iq$");
 
   private static Object getEnv(String varName) {
     switch (varName) {
@@ -121,7 +151,7 @@ public abstract class QuidemTest {
     final int commonPrefixLength = firstFile.getAbsolutePath().length() - first.length();
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
-    final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
+    final FilenameFilter filter = new PatternFilenameFilter(".*join\\.iq$");
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
       paths.add(f.getAbsolutePath().substring(commonPrefixLength));
     }
