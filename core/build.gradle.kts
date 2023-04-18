@@ -179,6 +179,9 @@ val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
 tasks.compileKotlin {
     dependsOn(versionClass)
     dependsOn(javaCCMain)
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 
 val fmppTest by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {
@@ -197,6 +200,9 @@ val javaCCTest by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
 
 tasks.compileTestKotlin {
     dependsOn(javaCCTest)
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 
 tasks.withType<Checkstyle>().configureEach {

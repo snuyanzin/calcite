@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.testlib.annotations
 
+import java.lang.annotation.Inherited
 import org.apache.calcite.testlib.WithLocaleExtension
 import org.junit.jupiter.api.extension.ExtendWith
-import java.lang.annotation.Inherited
 
 @Inherited
 @Target(AnnotationTarget.CLASS)

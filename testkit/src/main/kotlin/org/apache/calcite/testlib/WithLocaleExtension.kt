@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.testlib
 
+import java.util.Locale
 import org.apache.calcite.testlib.annotations.WithLocale
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace
 import org.junit.platform.commons.support.AnnotationSupport
-import java.util.Locale
 
 /**
  * Enables to set a locale per test class or test method by adding [WithLex] annotation.

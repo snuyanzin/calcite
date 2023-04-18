@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.vlsi.gradle.properties.dsl.props
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
-    kotlin("jvm")
+    `kotlin-dsl` apply false
 }
 
 dependencies {
@@ -40,4 +42,39 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
+}
+
+val skipAutostyle by props()
+
+allprojects {
+    applyKotlinProjectConventions()
+
+    tasks["processJandexIndex"].dependsOn(tasks["pluginUnderTestMetadata"])
+}
+
+fun Project.applyKotlinProjectConventions() {
+    if (project != rootProject) {
+        apply(plugin = "org.gradle.kotlin.kotlin-dsl")
+    }
+
+    tasks.withType<KotlinCompile> {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+    }
+    if (!skipAutostyle) {
+        apply(plugin = "com.github.autostyle")
+        autostyle {
+            kotlin {
+                ktlint()
+                trimTrailingWhitespace()
+                endWithNewline()
+            }
+            kotlinGradle {
+                ktlint()
+                trimTrailingWhitespace()
+                endWithNewline()
+            }
+        }
+    }
 }
