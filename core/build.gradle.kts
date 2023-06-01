@@ -19,6 +19,8 @@ import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.ide.dsl.settings
 import com.github.vlsi.gradle.ide.dsl.taskTriggers
+import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 
 plugins {
     kotlin("jvm")
@@ -179,6 +181,7 @@ val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
 tasks.compileKotlin {
     dependsOn(versionClass)
     dependsOn(javaCCMain)
+    JvmPlatforms.jvmPlatformByTargetVersion(JvmTarget.JVM_1_8)
 }
 
 val fmppTest by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {
