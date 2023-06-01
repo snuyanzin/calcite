@@ -20,6 +20,7 @@ import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.ide.dsl.settings
 import com.github.vlsi.gradle.ide.dsl.taskTriggers
 import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 
 plugins {
@@ -112,6 +113,12 @@ tasks.jar {
         into("codegen") {
             textFrom("$projectDir/src/main/codegen")
         }
+    }
+}
+
+tasks.withType<KotlinCompile>().all {
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
