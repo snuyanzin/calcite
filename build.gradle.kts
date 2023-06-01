@@ -498,10 +498,6 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
-        }
         configure<JavaPluginExtension> {
             consistentResolution {
                 useCompileClasspathVersions()
@@ -750,7 +746,7 @@ allprojects {
                 }
             }
             configureEach<Test> {
-                outputs.cacheIf("test results depend on the database configuration, so we souldn't cache it") {
+                outputs.cacheIf("test results depend on the database configuration, so we shouldn't cache it") {
                     false
                 }
                 useJUnitPlatform {
@@ -798,8 +794,8 @@ allprojects {
                     description = "$description (skipped by default, to enable it add -Dspotbugs)"
                 }
                 reports {
-                    html.isEnabled = reportsForHumans()
-                    xml.isEnabled = !reportsForHumans()
+                    html.required.set(reportsForHumans())
+                    xml.required.set(!reportsForHumans())
                 }
                 enabled = enableSpotBugs
             }

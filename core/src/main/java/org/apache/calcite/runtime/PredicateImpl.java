@@ -34,6 +34,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @deprecated Now Calcite is Java 8 and higher, we recommend that you
  * implement {@link java.util.function.Predicate} directly.
  */
+@Deprecated
 public abstract class PredicateImpl<T> implements Predicate<T> {
   @Override public final boolean apply(@Nullable T input) {
     return test(input);

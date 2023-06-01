@@ -117,6 +117,7 @@ public class Bindables {
   // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #BINDABLE_SET_OP_RULE}. */
   @SuppressWarnings("MissingSummary")
+  @Deprecated
   public static final RelOptRule BINDABLE_SETOP_RULE =
       BINDABLE_SET_OP_RULE;
 

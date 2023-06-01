@@ -919,6 +919,7 @@ public class Util {
    * or {@link RuntimeException} if e is checked;
    * or raw exception if e is unchecked or {@link Error}. */
   @SuppressWarnings("MissingSummary")
+  @Deprecated
   public static Error newInternal(Throwable e, String s) {
     return new AssertionError("Internal error: " + s, e);
   }
@@ -1167,6 +1168,7 @@ public class Util {
    * @deprecated If a piece of code calls this method, it indicates that the
    * code needs to be cleaned up.
    */
+  @Deprecated
   public static <T> T deprecated(T argument, boolean fail) {
     if (fail) {
       throw new UnsupportedOperationException();
