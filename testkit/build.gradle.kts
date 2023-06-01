@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.UsesKotlinJavaToolchain
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 
 /*
@@ -45,8 +46,6 @@ dependencies {
     testImplementation(kotlin("test-junit5"))
 }
 
-kotlin {
-    jvmToolchain {
-        JvmPlatforms.jvmPlatformByTargetVersion(JvmTarget.JVM_1_8)
-    }
+tasks.withType<UsesKotlinJavaToolchain>().configureEach {
+    JvmPlatforms.jvmPlatformByTargetVersion(JvmTarget.JVM_1_8)
 }
