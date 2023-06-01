@@ -52,11 +52,6 @@ fun Project.applyKotlinProjectConventions() {
         apply(plugin = "org.gradle.kotlin.kotlin-dsl")
     }
 
-    tasks.withType<KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "1.8"
-        }
-    }
     if (!skipAutostyle) {
         apply(plugin = "com.github.autostyle")
         autostyle {
