@@ -1,8 +1,4 @@
-import org.jetbrains.kotlin.config.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jetbrains.kotlin.gradle.tasks.UsesKotlinJavaToolchain
-import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
