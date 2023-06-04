@@ -24,6 +24,7 @@ plugins {
     kotlin("jvm")
     id("com.github.vlsi.crlf")
     id("com.github.vlsi.ide")
+    id("de.thetaphi.forbiddenapis")
     calcite.fmpp
     calcite.javacc
 }
@@ -77,6 +78,7 @@ dependencies {
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
+    implementation("de.thetaphi:forbiddenapis:3.5.1")
     testAnnotationProcessor("org.immutables:value")
     testCompileOnly("org.immutables:value-annotations")
     testCompileOnly("com.google.code.findbugs:jsr305")

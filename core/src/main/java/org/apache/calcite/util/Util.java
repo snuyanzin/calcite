@@ -71,6 +71,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -638,7 +640,7 @@ public class Util {
    * Creates a file-protocol URL for the given file.
    */
   @Deprecated // to be removed before 2.0
-  public static URL toURL(File file) throws MalformedURLException {
+  public static URL toURL(File file) throws MalformedURLException, URISyntaxException {
     String path = file.getAbsolutePath();
 
     // This is a bunch of weird code that is required to
@@ -654,8 +656,7 @@ public class Util {
         path = '/' + path;
       }
     }
-    path = "file://" + path;
-    return new URL(path);
+    return new URI("file:" + path).toURL();
   }
 
   /**
