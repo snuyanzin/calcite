@@ -811,6 +811,7 @@ allprojects {
                 inputs.property("java.vm.version", System.getProperty("java.vm.version"))
                 options.encoding = "UTF-8"
                 options.compilerArgs.add("-Xlint:deprecation")
+                options.compilerArgs.add("-Xlint:-dep-ann")
                 if (werror) {
                     options.compilerArgs.add("-Werror")
                 }

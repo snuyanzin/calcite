@@ -220,9 +220,9 @@ jobs:
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
 
-  linux-jdk19: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
+  linux-jdk20: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 19)'
+    name: 'Linux (JDK 20)'
     runs-on: ubuntu-latest
     env:
       GUAVA: '21.0' # oldest Guava
@@ -230,10 +230,10 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 19'
+      - name: 'Set up JDK 20'
         uses: actions/setup-java@v2
         with:
-          java-version: 19
+          java-version: 20
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -293,16 +293,16 @@ jobs:
 
   mac:
     if: github.event.action != 'labeled'
-    name: 'macOS (JDK 19)'
+    name: 'macOS (JDK 20)'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 19'
+      - name: 'Set up JDK 20'
         uses: actions/setup-java@v2
         with:
-          java-version: 19
+          java-version: 20
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -311,7 +311,7 @@ jobs:
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
-          job-id: jdk19
+          job-id: jdk20
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'

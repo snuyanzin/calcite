@@ -22,7 +22,8 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -34,8 +35,8 @@ public class HttpUtils {
   private HttpUtils() {}
 
   public static HttpURLConnection getURLConnection(String url)
-      throws IOException {
-    return (HttpURLConnection) new URL(url).openConnection();
+      throws IOException, URISyntaxException {
+    return (HttpURLConnection) new URI(url).toURL().openConnection();
   }
 
   public static void appendURLEncodedArgs(
@@ -82,7 +83,7 @@ public class HttpUtils {
   public static InputStream post(
       String url,
       CharSequence data,
-      Map<String, String> headers) throws IOException {
+      Map<String, String> headers) throws IOException, URISyntaxException {
     return post(url, data, headers, 10000, 60000);
   }
 
@@ -91,7 +92,7 @@ public class HttpUtils {
       CharSequence data,
       Map<String, String> headers,
       int cTimeout,
-      int rTimeout) throws IOException {
+      int rTimeout) throws IOException, URISyntaxException {
     return executeMethod(data == null ? "GET" : "POST", url, data, headers,
         cTimeout, rTimeout);
   }
@@ -99,7 +100,7 @@ public class HttpUtils {
   public static InputStream executeMethod(
       String method, String url,
       CharSequence data, Map<String, String> headers,
-      int cTimeout, int rTimeout) throws IOException {
+      int cTimeout, int rTimeout) throws IOException, URISyntaxException {
     // NOTE: do not log "data" or "url"; may contain user name or password.
     final HttpURLConnection conn = getURLConnection(url);
     conn.setRequestMethod(method);

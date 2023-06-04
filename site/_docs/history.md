@@ -848,7 +848,7 @@ Zou Dan.
   Build with Guava 19.0.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
-using JDK/OpenJDK versions 8 to 19;
+using JDK/OpenJDK versions 8 to 20;
 Guava versions 16.0.1 to 31.1-jre;
 other software versions as specified in gradle.properties.
 
