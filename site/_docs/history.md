@@ -47,7 +47,7 @@ The way of Locale parsing changed within [<a href="https://issues.apache.org/jir
 Now locale's language tag should match IETF BCP 47 language tag or be empty.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
-using JDK/OpenJDK versions 8 to 19;
+using JDK/OpenJDK versions 8 to 20;
 Guava versions 16.0.1 to 31.1-jre;
 other software versions as specified in gradle.properties.
 

@@ -77,6 +77,7 @@ dependencies {
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
+    implementation("de.thetaphi:forbiddenapis")
     testAnnotationProcessor("org.immutables:value")
     testCompileOnly("org.immutables:value-annotations")
     testCompileOnly("com.google.code.findbugs:jsr305")
