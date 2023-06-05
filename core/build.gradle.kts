@@ -106,12 +106,6 @@ dependencies {
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
-    }
-}
-
 tasks.jar {
     CrLfSpec(LineEndings.LF).run {
         into("codegen") {
