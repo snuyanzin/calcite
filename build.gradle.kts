@@ -496,12 +496,12 @@ allprojects {
             }
         }
     }
+    project.pluginManager.withPlugin("java") {
+        val extension = the<JavaPluginExtension>()
+        extension.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+    }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
-        }
         configure<JavaPluginExtension> {
             consistentResolution {
                 useCompileClasspathVersions()
