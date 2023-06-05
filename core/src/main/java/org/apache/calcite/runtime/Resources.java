@@ -55,6 +55,8 @@ import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
+import de.thetaphi.forbiddenapis.SuppressForbidden;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
@@ -986,6 +988,7 @@ public class Resources {
      * copied from {@link ResourceBundle}.
      */
     @SuppressWarnings("removal")
+    @SuppressForbidden
     private static @Nullable InputStream openPropertiesFile(Class clazz) {
       final ClassLoader loader = clazz.getClassLoader();
       final String resName = clazz.getName().replace('.', '/') + ".properties";

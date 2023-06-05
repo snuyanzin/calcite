@@ -21,3 +21,9 @@ dependencies {
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
 }
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
+}

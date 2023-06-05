@@ -43,6 +43,7 @@ import org.joda.time.Interval;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -106,7 +107,7 @@ class DruidConnectionImpl implements DruidConnection {
     try (InputStream in0 = post(url, data, requestHeaders, 10000, 1800000);
          InputStream in = traceResponse(in0)) {
       parse(queryType, in, sink, fieldNames, fieldTypes, page);
-    } catch (IOException e) {
+    } catch (IOException | URISyntaxException e) {
       throw new RuntimeException("Error while processing druid request ["
           + data + "]", e);
     }
@@ -625,7 +626,7 @@ class DruidConnectionImpl implements DruidConnection {
           }
         }
       }
-    } catch (IOException e) {
+    } catch (IOException | URISyntaxException e) {
       throw new RuntimeException(e);
     }
   }
@@ -647,7 +648,7 @@ class DruidConnectionImpl implements DruidConnection {
               String.class);
       final List<String> list = mapper.readValue(in, listType);
       return ImmutableSet.copyOf(list);
-    } catch (IOException e) {
+    } catch (IOException | URISyntaxException e) {
       throw new RuntimeException(e);
     }
   }

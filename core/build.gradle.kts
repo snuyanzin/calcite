@@ -78,6 +78,7 @@ dependencies {
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
     testAnnotationProcessor("org.immutables:value")
+    implementation("de.thetaphi:forbiddenapis:3.5.1")
     testCompileOnly("org.immutables:value-annotations")
     testCompileOnly("com.google.code.findbugs:jsr305")
 
@@ -103,6 +104,12 @@ dependencies {
     testRuntimeOnly("org.locationtech.proj4j:proj4j-epsg")
 
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
 }
 
 tasks.jar {

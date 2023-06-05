@@ -25,6 +25,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 
+import de.thetaphi.forbiddenapis.SuppressForbidden;
+
 import static java.util.Objects.requireNonNull;
 
 /** Compatibility layer.
@@ -77,6 +79,7 @@ public interface Compatible {
     /** Emulates MethodHandles.privateLookupIn on JDK 8;
      * in later JDK versions, throws. */
     @SuppressWarnings("deprecation")
+    @SuppressForbidden
     static <T> MethodHandles.Lookup privateLookupJdk8(Class<T> clazz) {
       try {
         final Constructor<MethodHandles.Lookup> constructor =

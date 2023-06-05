@@ -498,10 +498,6 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
-        }
         configure<JavaPluginExtension> {
             consistentResolution {
                 useCompileClasspathVersions()
@@ -773,6 +769,7 @@ allprojects {
                 inputs.property("java.vm.version", System.getProperty("java.vm.version"))
                 options.encoding = "UTF-8"
                 options.compilerArgs.add("-Xlint:deprecation")
+                options.compilerArgs.add("-Xlint:-dep-ann")
                 if (werror) {
                     options.compilerArgs.add("-Werror")
                 }

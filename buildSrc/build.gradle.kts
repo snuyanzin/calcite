@@ -46,8 +46,8 @@ allprojects {
         fileMode = "664".toInt(8)
     }
 
-    plugins.withType<JavaPlugin> {
-        configure<JavaPluginExtension> {
+    java {
+        toolchain {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
