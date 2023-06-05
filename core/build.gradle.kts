@@ -114,7 +114,7 @@ tasks.jar {
     }
 }
 
-val generatedVersionDir = File(buildDir, "generated/sources/version")
+val generatedVersionDir = layout.buildDirectory.get().file("generated/sources/version")
 val versionClass by tasks.registering(Sync::class) {
     val re = Regex("^(\\d+)\\.(\\d+).*")
 
@@ -150,7 +150,7 @@ val versionClass by tasks.registering(Sync::class) {
 }
 
 ide {
-    generatedJavaSources(versionClass.get(), generatedVersionDir)
+    generatedJavaSources(versionClass.get(), generatedVersionDir.asFile)
 }
 
 sourceSets {
