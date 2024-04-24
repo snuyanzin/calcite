@@ -8056,6 +8056,17 @@ public class JdbcTest {
         .returns("C1=OBJECT; C2=ARRAY; C3=INTEGER; C4=BOOLEAN\n");
   }
 
+  @Test void testJsonQuery() {
+    CalciteAssert.that()
+        .query("SELECT JSON_QUERY(v, '$.a') AS c1\n"
+            + ",JSON_QUERY(v, '$.a' RETURNING INTEGER ARRAY) AS c2\n"
+            + ",JSON_QUERY(v, '$.b' RETURNING INTEGER ARRAY EMPTY ARRAY ON ERROR) AS c3\n"
+            + ",JSON_QUERY(v, '$.b' RETURNING VARCHAR ARRAY WITH ARRAY WRAPPER) AS c4\n"
+            + "FROM (VALUES ('{\"a\": [1, 2],\"b\": \"[1, 2]\"}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=[1,2]; C2=[1, 2]; C3=[]; C4=[[1, 2]]\n");
+  }
+
   @Test void testJsonDepth() {
     CalciteAssert.that()
         .query("SELECT JSON_DEPTH(v) AS c1\n"
