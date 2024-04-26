@@ -8067,6 +8067,32 @@ public class JdbcTest {
         .returns("C1=[1,2]; C2=[1, 2]; C3=[]; C4=[[1, 2]]\n");
   }
 
+  @Test void testJsonQueryError() {
+    java.sql.SQLException t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_QUERY(v, '$.a' RETURNING VARCHAR ARRAY EMPTY OBJECT ON ERROR) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": \"hi\"}')) AS t(v)\n"
+                    + "limit 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("EMPTY_OBJECT is illegal for given return type"));
+
+    t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_QUERY(v, 'lax $.a' RETURNING VARCHAR ARRAY EMPTY OBJECT ON EMPTY) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": null}')) AS t(v)\n"
+                    + "limit 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("EMPTY_OBJECT is illegal for given return type"));
+  }
+
   @Test void testJsonDepth() {
     CalciteAssert.that()
         .query("SELECT JSON_DEPTH(v) AS c1\n"
