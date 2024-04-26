@@ -8072,7 +8072,8 @@ public class JdbcTest {
         assertThrows(
             java.sql.SQLException.class,
             () -> CalciteAssert.that()
-                .query("SELECT JSON_QUERY(v, '$.a' RETURNING VARCHAR ARRAY EMPTY OBJECT ON ERROR) AS c1\n"
+                .query("SELECT JSON_QUERY(v, '$.a' RETURNING VARCHAR ARRAY"
+                    + " EMPTY OBJECT ON ERROR) AS c1\n"
                     + "FROM (VALUES ('{\"a\": \"hi\"}')) AS t(v)\n"
                     + "limit 10")
                 .returns(""));
@@ -8084,7 +8085,8 @@ public class JdbcTest {
         assertThrows(
             java.sql.SQLException.class,
             () -> CalciteAssert.that()
-                .query("SELECT JSON_QUERY(v, 'lax $.a' RETURNING VARCHAR ARRAY EMPTY OBJECT ON EMPTY) AS c1\n"
+                .query("SELECT JSON_QUERY(v, 'lax $.a' RETURNING VARCHAR ARRAY"
+                    + " EMPTY OBJECT ON EMPTY) AS c1\n"
                     + "FROM (VALUES ('{\"a\": null}')) AS t(v)\n"
                     + "limit 10")
                 .returns(""));
