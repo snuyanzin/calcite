@@ -31,7 +31,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
@@ -56,18 +55,24 @@ class ArrowAdapterTest {
   private static File arrowDataDirectory;
 
   @BeforeAll
-  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException, SQLException {
+  static void initializeArrowState() throws IOException, SQLException {
     URL modelUrl =
         Objects.requireNonNull(ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
+    Path sharedTempDir = Files.createTempDirectory("shared_temp_dir");
+    sharedTempDir.toFile().deleteOnExit();
     Path sourceModelFilePath = Sources.of(modelUrl).file().toPath();
     Path modelFileTarget = sharedTempDir.resolve("arrow-model.json");
+    modelFileTarget.toFile().deleteOnExit();
     Files.copy(sourceModelFilePath, modelFileTarget);
 
     Path arrowFilesDirectory = sharedTempDir.resolve("arrow");
+    arrowFilesDirectory.toFile().deleteOnExit();
     Files.createDirectory(arrowFilesDirectory);
     arrowDataDirectory = arrowFilesDirectory.toFile();
+    arrowFilesDirectory.toFile().deleteOnExit();
 
     File dataLocationFile = arrowFilesDirectory.resolve("arrowdata.arrow").toFile();
+    dataLocationFile.deleteOnExit();
     ArrowData arrowDataGenerator = new ArrowData();
     arrowDataGenerator.writeArrowData(dataLocationFile);
     arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
