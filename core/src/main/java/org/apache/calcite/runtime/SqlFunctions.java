@@ -1322,7 +1322,7 @@ public class SqlFunctions {
    *
    * <p>Returns the ASCII character of {@code n} modulo 256,
    * or null if {@code n} &lt; 0. */
-  public static String charFromAscii(int n) {
+  public static @Nullable String charFromAscii(int n) {
     if (n < 0) {
       return null;
     }
@@ -1339,7 +1339,7 @@ public class SqlFunctions {
   /**
    * SQL CODE_POINTS_TO_BYTES(list) function.
    */
-  public static ByteString codePointsToBytes(List codePoints) {
+  public static @Nullable ByteString codePointsToBytes(List codePoints) {
     int length = codePoints.size();
     byte[] bytes = new byte[length];
     for (int i = 0; i < length; i++) {
@@ -1362,7 +1362,7 @@ public class SqlFunctions {
   /**
    * SQL CODE_POINTS_TO_STRING(list) function.
    */
-  public static String codePointsToString(List codePoints) {
+  public static @Nullable String codePointsToString(List codePoints) {
     StringBuilder sb = new StringBuilder();
     for (Object codePoint : codePoints) {
       if (codePoint == null) {
@@ -1385,7 +1385,7 @@ public class SqlFunctions {
   /**
    * SQL TO_CODE_POINTS(string) function.
    */
-  public static List<Integer> toCodePoints(String s) {
+  public static @Nullable List<Integer> toCodePoints(String s) {
     if (s.length() == 0) {
       return null;
     }
@@ -1403,7 +1403,7 @@ public class SqlFunctions {
   /**
    * SQL TO_CODE_POINTS(string) function for binary string.
    */
-  public static List<Integer> toCodePoints(ByteString s) {
+  public static @Nullable List<Integer> toCodePoints(ByteString s) {
     if (s.length() == 0) {
       return null;
     }
@@ -1475,8 +1475,8 @@ public class SqlFunctions {
   /** Concatenates two strings.
    * Returns null only when both s0 and s1 are null,
    * otherwise null is treated as empty string. */
-  public static String concatWithNull(String s0,
-      String s1) {
+  public static @Nullable String concatWithNull(@Nullable String s0,
+      @Nullable String s1) {
     if (s0 == null) {
       return s1;
     } else if (s1 == null) {
@@ -1567,7 +1567,7 @@ public class SqlFunctions {
             .build(CacheLoader.from(ParseUrlFunction::keyToPattern));
 
     /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
-    public String parseUrl(String urlStr, String partToExtract,
+    public @Nullable String parseUrl(String urlStr, String partToExtract,
         String keyToExtract) {
       if (!partToExtract.equals("QUERY")) {
         return null;
@@ -1584,7 +1584,7 @@ public class SqlFunctions {
     }
 
     /** SQL {@code PARSE_URL(urlStr, partToExtract)} function. */
-    public String parseUrl(String urlStr, String partToExtract) {
+    public @Nullable String parseUrl(String urlStr, String partToExtract) {
       URI uri;
       try {
         uri = new URI(urlStr);
