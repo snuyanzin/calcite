@@ -2430,7 +2430,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to long values. */
-  public static Long safeAdd(long b0, long b1) {
+  public static @Nullable Long safeAdd(long b0, long b1) {
     try {
       return Math.addExact(b0, b1);
     } catch (ArithmeticException e) {
@@ -2439,59 +2439,59 @@ public class SqlFunctions {
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to long and BigDecimal values. */
-  public static BigDecimal safeAdd(long b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeAdd(long b0, BigDecimal b1) {
     BigDecimal ans = BigDecimal.valueOf(b0).add(b1);
     return safeDecimal(ans) ? ans : null;
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to BigDecimal and long values. */
-  public static BigDecimal safeAdd(BigDecimal b0, long b1) {
+  public static @Nullable BigDecimal safeAdd(BigDecimal b0, long b1) {
     return safeAdd(b1, b0);
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to BigDecimal values. */
-  public static BigDecimal safeAdd(BigDecimal b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeAdd(BigDecimal b0, BigDecimal b1) {
     BigDecimal ans = b0.add(b1);
     return safeDecimal(ans) ? ans : null;
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to double and long values. */
-  public static Double safeAdd(double b0, long b1) {
+  public static @Nullable Double safeAdd(double b0, long b1) {
     double ans = b0 + b1;
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to long and double values. */
-  public static Double safeAdd(long b0, double b1) {
+  public static @Nullable Double safeAdd(long b0, double b1) {
     return safeAdd(b1, b0);
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to double and BigDecimal values. */
-  public static Double safeAdd(double b0, BigDecimal b1) {
+  public static @Nullable Double safeAdd(double b0, BigDecimal b1) {
     double ans = b0 + b1.doubleValue();
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to BigDecimal and double values. */
-  public static Double safeAdd(BigDecimal b0, double b1) {
+  public static @Nullable Double safeAdd(BigDecimal b0, double b1) {
     return safeAdd(b1, b0);
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to double values. */
-  public static Double safeAdd(double b0, double b1) {
+  public static @Nullable Double safeAdd(double b0, double b1) {
     double ans = b0 + b1;
     boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
     return safeDouble(ans) || !isFinite ? ans : null;
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to long values. */
-  public static Double safeDivide(long b0, long b1) {
+  public static @Nullable Double safeDivide(long b0, long b1) {
     double ans = (double) b0 / b1;
     return safeDouble(ans) && b1 != 0 ? ans : null;
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to long and BigDecimal values. */
-  public static BigDecimal safeDivide(long b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeDivide(long b0, BigDecimal b1) {
     try {
       BigDecimal ans = BigDecimal.valueOf(b0).divide(b1);
       return safeDecimal(ans) ? ans : null;
@@ -2501,7 +2501,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to BigDecimal and long values. */
-  public static BigDecimal safeDivide(BigDecimal b0, long b1) {
+  public static @Nullable BigDecimal safeDivide(BigDecimal b0, long b1) {
     try {
       BigDecimal ans = b0.divide(BigDecimal.valueOf(b1));
       return safeDecimal(ans) ? ans : null;
@@ -2511,7 +2511,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to BigDecimal values. */
-  public static BigDecimal safeDivide(BigDecimal b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeDivide(BigDecimal b0, BigDecimal b1) {
     try {
       BigDecimal ans = b0.divide(b1);
       return safeDecimal(ans) ? ans : null;
@@ -2521,38 +2521,38 @@ public class SqlFunctions {
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to double and long values. */
-  public static Double safeDivide(double b0, long b1) {
+  public static @Nullable Double safeDivide(double b0, long b1) {
     double ans = b0 / b1;
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to long and double values. */
-  public static Double safeDivide(long b0, double b1) {
+  public static @Nullable Double safeDivide(long b0, double b1) {
     double ans = b0 / b1;
     return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to double and BigDecimal values. */
-  public static Double safeDivide(double b0, BigDecimal b1) {
+  public static @Nullable Double safeDivide(double b0, BigDecimal b1) {
     double ans = b0 / b1.doubleValue();
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to BigDecimal and double values. */
-  public static Double safeDivide(BigDecimal b0, double b1) {
+  public static @Nullable Double safeDivide(BigDecimal b0, double b1) {
     double ans = b0.doubleValue() / b1;
     return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
   }
 
   /** SQL <code>SAFE_DIVIDE</code> function applied to double values. */
-  public static Double safeDivide(double b0, double b1) {
+  public static @Nullable Double safeDivide(double b0, double b1) {
     double ans = b0 / b1;
     boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
     return safeDouble(ans) || !isFinite ? ans : null;
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to long values. */
-  public static Long safeMultiply(long b0, long b1) {
+  public static @Nullable Long safeMultiply(long b0, long b1) {
     try {
       return Math.multiplyExact(b0, b1);
     } catch (ArithmeticException e) {
@@ -2561,53 +2561,53 @@ public class SqlFunctions {
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to long and BigDecimal values. */
-  public static BigDecimal safeMultiply(long b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeMultiply(long b0, BigDecimal b1) {
     BigDecimal ans = BigDecimal.valueOf(b0).multiply(b1);
     return safeDecimal(ans) ? ans : null;
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to BigDecimal and long values. */
-  public static BigDecimal safeMultiply(BigDecimal b0, long b1) {
+  public static @Nullable BigDecimal safeMultiply(BigDecimal b0, long b1) {
     return safeMultiply(b1, b0);
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to BigDecimal values. */
-  public static BigDecimal safeMultiply(BigDecimal b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeMultiply(BigDecimal b0, BigDecimal b1) {
     BigDecimal ans = b0.multiply(b1);
     return safeDecimal(ans) ? ans : null;
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to double and long values. */
-  public static Double safeMultiply(double b0, long b1) {
+  public static @Nullable Double safeMultiply(double b0, long b1) {
     double ans = b0 * b1;
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to long and double values. */
-  public static Double safeMultiply(long b0, double b1) {
+  public static @Nullable Double safeMultiply(long b0, double b1) {
     return safeMultiply(b1, b0);
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to double and BigDecimal values. */
-  public static Double safeMultiply(double b0, BigDecimal b1) {
+  public static @Nullable Double safeMultiply(double b0, BigDecimal b1) {
     double ans = b0 * b1.doubleValue();
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to BigDecimal and double values. */
-  public static Double safeMultiply(BigDecimal b0, double b1) {
+  public static @Nullable Double safeMultiply(BigDecimal b0, double b1) {
     return safeMultiply(b1, b0);
   }
 
   /** SQL <code>SAFE_MULTIPLY</code> function applied to double values. */
-  public static Double safeMultiply(double b0, double b1) {
+  public static @Nullable Double safeMultiply(double b0, double b1) {
     double ans = b0 * b1;
     boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
     return safeDouble(ans) || !isFinite ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to long values. */
-  public static Long safeSubtract(long b0, long b1) {
+  public static @Nullable Long safeSubtract(long b0, long b1) {
     try {
       return Math.subtractExact(b0, b1);
     } catch (ArithmeticException e) {
@@ -2616,49 +2616,49 @@ public class SqlFunctions {
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to long and BigDecimal values. */
-  public static BigDecimal safeSubtract(long b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeSubtract(long b0, BigDecimal b1) {
     BigDecimal ans = BigDecimal.valueOf(b0).subtract(b1);
     return safeDecimal(ans) ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to BigDecimal and long values. */
-  public static BigDecimal safeSubtract(BigDecimal b0, long b1) {
+  public static @Nullable BigDecimal safeSubtract(BigDecimal b0, long b1) {
     BigDecimal ans = b0.subtract(BigDecimal.valueOf(b1));
     return safeDecimal(ans) ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to BigDecimal values. */
-  public static BigDecimal safeSubtract(BigDecimal b0, BigDecimal b1) {
+  public static @Nullable BigDecimal safeSubtract(BigDecimal b0, BigDecimal b1) {
     BigDecimal ans = b0.subtract(b1);
     return safeDecimal(ans) ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to double and long values. */
-  public static Double safeSubtract(double b0, long b1) {
+  public static @Nullable Double safeSubtract(double b0, long b1) {
     double ans = b0 - b1;
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to long and double values. */
-  public static Double safeSubtract(long b0, double b1) {
+  public static @Nullable Double safeSubtract(long b0, double b1) {
     double ans = b0 - b1;
     return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to double and BigDecimal values. */
-  public static Double safeSubtract(double b0, BigDecimal b1) {
+  public static @Nullable Double safeSubtract(double b0, BigDecimal b1) {
     double ans = b0 - b1.doubleValue();
     return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to BigDecimal and double values. */
-  public static Double safeSubtract(BigDecimal b0, double b1) {
+  public static @Nullable Double safeSubtract(BigDecimal b0, double b1) {
     double ans = b0.doubleValue() - b1;
     return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
   }
 
   /** SQL <code>SAFE_SUBTRACT</code> function applied to double values. */
-  public static Double safeSubtract(double b0, double b1) {
+  public static @Nullable Double safeSubtract(double b0, double b1) {
     double ans = b0 - b1;
     boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
     return safeDouble(ans) || !isFinite ? ans : null;
