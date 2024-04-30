@@ -1885,7 +1885,7 @@ public class SqlFunctions {
 
   /** SQL <code>=</code> operator applied to Object[] values (neither may be
    * null). */
-  public static boolean eq(@Nullable Object [] b0, @Nullable Object [] b1) {
+  public static boolean eq(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
     return Arrays.deepEquals(b0, b1);
   }
 
