@@ -2809,13 +2809,13 @@ public class SqlFunctions {
   }
 
   /** SQL {@code LOG2(number)} function applied to double values. */
-  public static Double log2(double number) {
+  public static @Nullable Double log2(double number) {
     return (number <= 0) ? null : log(number, 2);
   }
 
   /** SQL {@code LOG2(number)} function applied to
    * BigDecimal values. */
-  public static Double log2(BigDecimal number) {
+  public static @Nullable Double log2(BigDecimal number) {
     return log2(number.doubleValue());
   }
 
@@ -3196,7 +3196,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>FACTORIAL</code> operator. */
-  public static Long factorial(int b0) {
+  public static @Nullable Long factorial(int b0) {
     if (b0 < 0 || b0 > 20) {
       return null;
     }
@@ -5213,7 +5213,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAYS_OVERLAP function. */
-  public static Boolean arraysOverlap(List list1, List list2) {
+  public static @Nullable Boolean arraysOverlap(List list1, List list2) {
     if (list1.size() > list2.size()) {
       return arraysOverlap(list2, list1);
     }
@@ -5347,7 +5347,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_REPEAT function. */
-  public static List<Object> arrayRepeat(Object element, Object count) {
+  public static @Nullable List<Object> arrayRepeat(Object element, Object count) {
     if (count == null) {
       return null;
     }
@@ -5366,7 +5366,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_INSERT function. */
-  public static List arrayInsert(List baselist, Object pos, Object val) {
+  public static @Nullable List arrayInsert(List baselist, Object pos, Object val) {
     if (baselist == null || pos == null) {
       return null;
     }
@@ -5485,7 +5485,7 @@ public class SqlFunctions {
   }
 
   /** Support the EXISTS(list, function1) function. */
-  public static Boolean exists(List list, Function1<Object, Boolean> function1) {
+  public static @Nullable Boolean exists(List list, Function1<Object, Boolean> function1) {
     return nullableExists(list, function1);
   }
 
@@ -5544,7 +5544,7 @@ public class SqlFunctions {
   }
 
   /** Support the MAP_FROM_ENTRIES function. */
-  public static Map mapFromEntries(List entries) {
+  public static @Nullable Map mapFromEntries(List entries) {
     final Map map = new LinkedHashMap<>();
     for (Object entry : entries) {
       if (entry == null) {
@@ -5594,7 +5594,7 @@ public class SqlFunctions {
   }
 
   /** Support the ELEMENT function. */
-  public static Object element(List list) {
+  public static @Nullable Object element(List list) {
     switch (list.size()) {
     case 0:
       return null;
@@ -5606,7 +5606,7 @@ public class SqlFunctions {
   }
 
   /** Support the MEMBER OF function. */
-  public static boolean memberOf(Object object, Collection collection) {
+  public static boolean memberOf(@Nullable Object object, Collection collection) {
     return collection.contains(object);
   }
 
