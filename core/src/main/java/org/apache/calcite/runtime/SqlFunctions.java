@@ -3664,7 +3664,7 @@ public class SqlFunctions {
    * @see #toInt(java.sql.Date, TimeZone)
    * @see #internalToDate(Integer) converse method
    */
-  public static @PolyNull Integer toIntOptional(java.sql.Date v) {
+  public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Date v) {
     return v == null
         ? castNonNull(null)
         : toInt(v);
@@ -3677,7 +3677,7 @@ public class SqlFunctions {
    *
    * @see #toInt(java.sql.Date, TimeZone)
    */
-  public static @PolyNull Integer toIntOptional(java.sql.Date v,
+  public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Date v,
       TimeZone timeZone) {
     return v == null
         ? castNonNull(null)
@@ -3705,7 +3705,7 @@ public class SqlFunctions {
    * @see #toInt(java.sql.Time)
    * @see #internalToTime(Integer) converse method
    */
-  public static @PolyNull Integer toIntOptional(java.sql.Time v) {
+  public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Time v) {
     return v == null ? castNonNull(null) : toInt(v);
   }
 
@@ -3915,7 +3915,7 @@ public class SqlFunctions {
    * @see #internalToDate(int)
    * @see #toIntOptional(java.sql.Date) converse method
    */
-  public static java.sql.Date internalToDate(@PolyNull Integer v) {
+  public static java.sql.@PolyNull Date internalToDate(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToDate(v.intValue());
   }
 
@@ -3939,7 +3939,7 @@ public class SqlFunctions {
    * @see #internalToTime(Integer)
    * @see #toIntOptional(java.sql.Time) converse method
    */
-  public static java.sql.Time internalToTime(@PolyNull Integer v) {
+  public static java.sql.@PolyNull Time internalToTime(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
   }
 
@@ -4244,7 +4244,7 @@ public class SqlFunctions {
    * @see #toLongOptional(Timestamp, TimeZone)
    * @see #toLongOptional(Timestamp) converse method
    */
-  public static java.sql.Timestamp internalToTimestamp(@PolyNull Long v) {
+  public static java.sql.@PolyNull Timestamp internalToTimestamp(@PolyNull Long v) {
     return v == null ? castNonNull(null) : internalToTimestamp(v.longValue());
   }
 
