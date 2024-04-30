@@ -5291,7 +5291,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_MAX function. */
-  public static <T extends Object & Comparable<? super T>> T arrayMax(
+  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMax(
       List<? extends T> list) {
 
     T max = null;
@@ -5305,7 +5305,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_MIN function. */
-  public static <T extends Object & Comparable<? super T>> T arrayMin(
+  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMin(
       List<? extends T> list) {
 
     T min = null;
@@ -5716,7 +5716,7 @@ public class SqlFunctions {
   }
 
   /** SQL {@code ARRAY_TO_STRING(array, delimiter, nullText)} function. */
-  public static String arrayToString(List list, String delimiter, String nullText) {
+  public static String arrayToString(List list, String delimiter, @Nullable String nullText) {
     // Note that the SQL function ARRAY_TO_STRING that we implement will return
     // 'NULL' when the nullText argument is NULL. However, that is handled by
     // the nullPolicy of the RexToLixTranslator. So here a NULL value
@@ -5832,7 +5832,7 @@ public class SqlFunctions {
    * and does not return {@code true} for any element of {@code list},
    * the result will be {@code null}, not {@code false}.
    */
-  public static <E> Boolean nullableExists(List<? extends E> list,
+  public static @Nullable <E> Boolean nullableExists(List<? extends E> list,
       Function1<E, Boolean> predicate) {
     boolean nullExists = false;
     for (E e : list) {
@@ -5852,7 +5852,7 @@ public class SqlFunctions {
    * and does not return {@code false} for any element,
    * the result will be {@code null}, not {@code true}.
    */
-  public static <E> Boolean nullableAll(List<? extends E> list,
+  public static @Nullable <E> Boolean nullableAll(List<? extends E> list,
       Function1<E, Boolean> predicate) {
     boolean nullExists = false;
     for (E e : list) {
@@ -5888,8 +5888,8 @@ public class SqlFunctions {
    * {@link org.apache.calcite.adapter.enumerable.JavaRowFormat}.
    */
   @Experimental
-  public static Object structAccess(Object structObject, int index,
-      String fieldName) {
+  public static @Nullable Object structAccess(@Nullable Object structObject, int index,
+      @Nullable String fieldName) {
     if (structObject == null) {
       return null;
     }
