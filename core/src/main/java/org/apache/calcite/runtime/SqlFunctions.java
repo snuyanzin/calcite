@@ -2403,7 +2403,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>*</code> operator applied to nullable int and long values. */
-  public static @PolyNull Long multiply(@PolyNull Integer b0, Long b1) {
+  public static @PolyNull Long multiply(@PolyNull Integer b0, @PolyNull Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() * b1.longValue());
@@ -3726,7 +3726,7 @@ public class SqlFunctions {
         : (Integer) cannotConvert(o, int.class);
   }
 
-  public static Integer toIntOptional(Object o) {
+  public static @PolyNull Integer toIntOptional(@PolyNull Object o) {
     return o == null ? castNonNull(null) : toInt(o);
   }
 
@@ -3791,7 +3791,7 @@ public class SqlFunctions {
    * @see #toLong(Timestamp, TimeZone)
    * @see #internalToTimestamp(Long) converse method
    */
-  public static Long toLongOptional(Timestamp v) {
+  public static @PolyNull Long toLongOptional(@PolyNull Timestamp v) {
     return v == null ? castNonNull(null) : toLong(v, LOCAL_TZ);
   }
 
@@ -3802,7 +3802,7 @@ public class SqlFunctions {
    *
    * @see #toLong(Timestamp, TimeZone)
    */
-  public static Long toLongOptional(Timestamp v,
+  public static @PolyNull Long toLongOptional(@PolyNull Timestamp v,
       TimeZone timeZone) {
     if (v == null) {
       return castNonNull(null);
@@ -3832,7 +3832,7 @@ public class SqlFunctions {
         : (Long) cannotConvert(o, long.class);
   }
 
-  public static Long toLongOptional(Object o) {
+  public static @PolyNull Long toLongOptional(@PolyNull Object o) {
     return o == null ? castNonNull(null) : toLong(o);
   }
 
@@ -3943,7 +3943,7 @@ public class SqlFunctions {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
   }
 
-  public static Integer toTimeWithLocalTimeZone(String v) {
+  public static @PolyNull Integer toTimeWithLocalTimeZone(@PolyNull String v) {
     if (v == null) {
       return castNonNull(null);
     }
@@ -3953,7 +3953,7 @@ public class SqlFunctions {
         .getMillisOfDay();
   }
 
-  public static Integer toTimeWithLocalTimeZone(String v,
+  public static @PolyNull Integer toTimeWithLocalTimeZone(@PolyNull String v,
       TimeZone timeZone) {
     if (v == null) {
       return castNonNull(null);
@@ -4175,7 +4175,7 @@ public class SqlFunctions {
             + timeZone.hashCode() * 37;
       }
 
-      @Override public boolean equals(Object obj) {
+      @Override public boolean equals(@Nullable Object obj) {
         return this == obj
             || obj instanceof Key
             && fmt.equals(((Key) obj).fmt)
@@ -4527,7 +4527,7 @@ public class SqlFunctions {
         / (1000L * 1000L)); // milli > micro > nano
   }
 
-  public static Long toTimestampWithLocalTimeZone(String v) {
+  public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v) {
     if (v == null) {
       return castNonNull(null);
     }
@@ -4537,7 +4537,7 @@ public class SqlFunctions {
         .getMillisSinceEpoch();
   }
 
-  public static Long toTimestampWithLocalTimeZone(String v,
+  public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v,
       TimeZone timeZone) {
     if (v == null) {
       return castNonNull(null);
@@ -4551,7 +4551,7 @@ public class SqlFunctions {
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.
 
   /** Helper for CAST(... AS VARCHAR(maxLength)). */
-  public static String truncate(String s, int maxLength) {
+  public static @PolyNull String truncate(@PolyNull String s, int maxLength) {
     if (s == null) {
       return s;
     } else if (s.length() > maxLength) {
@@ -4562,7 +4562,7 @@ public class SqlFunctions {
   }
 
   /** Helper for CAST(... AS CHAR(maxLength)). */
-  public static String truncateOrPad(String s, int maxLength) {
+  public static @PolyNull String truncateOrPad(@PolyNull String s, int maxLength) {
     if (s == null) {
       return s;
     } else {
@@ -4575,7 +4575,7 @@ public class SqlFunctions {
     }
   }
 
-  public static ByteString stringToBinary(String s, Charset charset) {
+  public static @PolyNull ByteString stringToBinary(@PolyNull String s, Charset charset) {
     if (s == null) {
       return null;
     } else {
@@ -4584,7 +4584,7 @@ public class SqlFunctions {
   }
 
   /** Helper for CAST(... AS VARBINARY(maxLength)). */
-  public static ByteString truncate(ByteString s, int maxLength) {
+  public static @PolyNull ByteString truncate(@PolyNull ByteString s, int maxLength) {
     if (s == null) {
       return s;
     } else if (s.length() > maxLength) {
@@ -4595,7 +4595,7 @@ public class SqlFunctions {
   }
 
   /** Helper for CAST(... AS BINARY(maxLength)). */
-  public static ByteString truncateOrPad(ByteString s, int maxLength) {
+  public static @PolyNull ByteString truncateOrPad(@PolyNull ByteString s, int maxLength) {
     if (s == null) {
       return s;
     } else {
@@ -5174,7 +5174,7 @@ public class SqlFunctions {
   }
 
   /** NULL &rarr; NULL, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
-  public static Boolean not(Boolean b) {
+  public static @PolyNull Boolean not(@PolyNull Boolean b) {
     return b == null ? castNonNull(null) : !b;
   }
 
