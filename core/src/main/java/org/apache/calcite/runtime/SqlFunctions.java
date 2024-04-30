@@ -4921,7 +4921,7 @@ public class SqlFunctions {
 
   /** SQL {@code CURRENT_DATETIME} function with a specified timezone. */
   @NonDeterministic
-  public static Long currentDatetime(DataContext root, String timezone) {
+  public static @Nullable Long currentDatetime(DataContext root, @Nullable String timezone) {
     if (timezone == null) {
       return null;
     }
@@ -5086,7 +5086,7 @@ public class SqlFunctions {
    * <p>The {@code ITEM}, {@code SAFE_OFFSET}, and {@code SAFE_ORDINAL}
    * operators return null if the index is out of bounds, while the others
    * throw an error. */
-  public static Object arrayItem(List list, int item, int offset,
+  public static @Nullable Object arrayItem(List list, int item, int offset,
       boolean safe) {
     if (item < offset || item > list.size() + 1 - offset) {
       if (safe) {
@@ -5100,14 +5100,14 @@ public class SqlFunctions {
 
   /** Helper for "map element reference". Caller has already ensured that
    * array and index are not null. Index is 1-based, per SQL. */
-  public static Object mapItem(Map map, Object item) {
+  public static @Nullable Object mapItem(Map map, Object item) {
     return map.get(item);
   }
 
   /** Implements the {@code [ ... ]} operator on an object whose type is not
    * known until runtime.
    */
-  public static Object item(Object object, Object index) {
+  public static @Nullable Object item(Object object, Object index) {
     if (object instanceof Map) {
       return mapItem((Map) object, index);
     }
@@ -5125,7 +5125,7 @@ public class SqlFunctions {
   }
 
   /** As {@link #arrayItem} method, but allows array to be nullable. */
-  public static Object arrayItemOptional(List list,
+  public static @Nullable Object arrayItemOptional(@Nullable List list,
       int item, int offset, boolean safe) {
     if (list == null) {
       return null;
@@ -5134,7 +5134,7 @@ public class SqlFunctions {
   }
 
   /** As {@link #mapItem} method, but allows map to be nullable. */
-  public static Object mapItemOptional(Map map,
+  public static @Nullable Object mapItemOptional(@Nullable Map map,
       Object item) {
     if (map == null) {
       return null;
@@ -5143,7 +5143,7 @@ public class SqlFunctions {
   }
 
   /** As {@link #item} method, but allows object to be nullable. */
-  public static Object itemOptional(Object object,
+  public static @Nullable Object itemOptional(@Nullable Object object,
       Object index) {
     if (object == null) {
       return null;
@@ -5153,22 +5153,22 @@ public class SqlFunctions {
 
 
   /** NULL &rarr; FALSE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
-  public static boolean isTrue(Boolean b) {
+  public static boolean isTrue(@Nullable Boolean b) {
     return b != null && b;
   }
 
   /** NULL &rarr; FALSE, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
-  public static boolean isFalse(Boolean b) {
+  public static boolean isFalse(@Nullable Boolean b) {
     return b != null && !b;
   }
 
   /** NULL &rarr; TRUE, FALSE &rarr; TRUE, TRUE &rarr; FALSE. */
-  public static boolean isNotTrue(Boolean b) {
+  public static boolean isNotTrue(@Nullable Boolean b) {
     return b == null || !b;
   }
 
   /** NULL &rarr; TRUE, FALSE &rarr; FALSE, TRUE &rarr; TRUE. */
-  public static boolean isNotFalse(Boolean b) {
+  public static boolean isNotFalse(@Nullable Boolean b) {
     return b == null || b;
   }
 
