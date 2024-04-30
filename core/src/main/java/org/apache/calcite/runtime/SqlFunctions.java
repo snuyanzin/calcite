@@ -2249,44 +2249,44 @@ public class SqlFunctions {
 
   /** SQL <code>-</code> operator applied to int values; left side may be
    * null. */
-  public static Integer minus(Integer b0, int b1) {
+  public static @PolyNull Integer minus(@PolyNull Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 - b1);
   }
 
   /** SQL <code>-</code> operator applied to int values; right side may be
    * null. */
-  public static Integer minus(int b0, Integer b1) {
+  public static @PolyNull Integer minus(int b0, @PolyNull Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 - b1);
   }
 
   /** SQL <code>-</code> operator applied to nullable int values. */
-  public static Integer minus(Integer b0, Integer b1) {
+  public static @PolyNull Integer minus(@PolyNull Integer b0, @PolyNull Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 - b1);
   }
 
   /** SQL <code>-</code> operator applied to nullable long and int values. */
-  public static Long minus(Long b0, Integer b1) {
+  public static @PolyNull Long minus(@PolyNull Long b0, @PolyNull Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() - b1.longValue());
   }
 
   /** SQL <code>-</code> operator applied to nullable int and long values. */
-  public static Long minus(Integer b0, Long b1) {
+  public static @PolyNull Long minus(@PolyNull Integer b0, @PolyNull Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() - b1.longValue());
   }
 
   /** SQL <code>-</code> operator applied to nullable BigDecimal values. */
-  public static BigDecimal minus(BigDecimal b0,
-      BigDecimal b1) {
+  public static @PolyNull BigDecimal minus(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
   }
 
   /** SQL <code>-</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
-  public static Object minusAny(Object b0, Object b1) {
+  public static @PolyNull Object minusAny(@PolyNull Object b0, @PolyNull Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
     }
@@ -2307,39 +2307,39 @@ public class SqlFunctions {
 
   /** SQL <code>/</code> operator applied to int values; left side may be
    * null. */
-  public static Integer divide(Integer b0, int b1) {
+  public static @PolyNull Integer divide(@PolyNull Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 / b1);
   }
 
   /** SQL <code>/</code> operator applied to int values; right side may be
    * null. */
-  public static Integer divide(int b0, Integer b1) {
+  public static @PolyNull Integer divide(int b0, @PolyNull Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 / b1);
   }
 
   /** SQL <code>/</code> operator applied to nullable int values. */
-  public static Integer divide(Integer b0,
-      Integer b1) {
+  public static @PolyNull Integer divide(@PolyNull Integer b0,
+      @PolyNull Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 / b1);
   }
 
   /** SQL <code>/</code> operator applied to nullable long and int values. */
-  public static Long divide(Long b0, Integer b1) {
+  public static @PolyNull Long divide(@PolyNull Long b0, @PolyNull Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() / b1.longValue());
   }
 
   /** SQL <code>/</code> operator applied to nullable int and long values. */
-  public static Long divide(Integer b0, Long b1) {
+  public static @PolyNull Long divide(@PolyNull Integer b0, @PolyNull Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() / b1.longValue());
   }
 
   /** SQL <code>/</code> operator applied to BigDecimal values. */
-  public static BigDecimal divide(BigDecimal b0,
-      BigDecimal b1) {
+  public static @PolyNull BigDecimal divide(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : b0.divide(b1, MathContext.DECIMAL64);
@@ -2347,8 +2347,8 @@ public class SqlFunctions {
 
   /** SQL <code>/</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
-  public static Object divideAny(Object b0,
-      Object b1) {
+  public static @PolyNull Object divideAny(@PolyNull Object b0,
+      @PolyNull Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
     }
@@ -2379,46 +2379,46 @@ public class SqlFunctions {
 
   /** SQL <code>*</code> operator applied to int values; left side may be
    * null. */
-  public static Integer multiply(Integer b0, int b1) {
+  public static @PolyNull Integer multiply(@PolyNull Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 * b1);
   }
 
   /** SQL <code>*</code> operator applied to int values; right side may be
    * null. */
-  public static Integer multiply(int b0, Integer b1) {
+  public static @PolyNull Integer multiply(int b0, @PolyNull Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 * b1);
   }
 
   /** SQL <code>*</code> operator applied to nullable int values. */
-  public static Integer multiply(Integer b0,
-      Integer b1) {
+  public static @PolyNull Integer multiply(@PolyNull Integer b0,
+      @PolyNull Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 * b1);
   }
 
   /** SQL <code>*</code> operator applied to nullable long and int values. */
-  public static Long multiply(Long b0, Integer b1) {
+  public static @PolyNull Long multiply(@PolyNull Long b0, @PolyNull Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() * b1.longValue());
   }
 
   /** SQL <code>*</code> operator applied to nullable int and long values. */
-  public static Long multiply(Integer b0, Long b1) {
+  public static @PolyNull Long multiply(@PolyNull Integer b0, Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() * b1.longValue());
   }
 
   /** SQL <code>*</code> operator applied to nullable BigDecimal values. */
-  public static BigDecimal multiply(BigDecimal b0,
-      BigDecimal b1) {
+  public static @PolyNull BigDecimal multiply(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.multiply(b1);
   }
 
   /** SQL <code>*</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
-  public static Object multiplyAny(Object b0,
-      Object b1) {
+  public static @PolyNull Object multiplyAny(@PolyNull Object b0,
+      @PolyNull Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
     }
