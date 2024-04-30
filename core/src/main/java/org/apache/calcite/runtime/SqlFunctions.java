@@ -1749,10 +1749,10 @@ public class SqlFunctions {
     /** Key for cache of compiled regular expressions. */
     private static final class Key {
       final String pattern;
-      final String escape;
+      final @Nullable String escape;
       final int flags;
 
-      Key(String pattern, String escape, int flags) {
+      Key(String pattern, @Nullable String escape, int flags) {
         this.pattern = pattern;
         this.escape = escape;
         this.flags = flags;
@@ -1764,7 +1764,7 @@ public class SqlFunctions {
             ^ flags;
       }
 
-      @Override public boolean equals(Object obj) {
+      @Override public boolean equals(@Nullable Object obj) {
         return this == obj
             || obj instanceof Key
             && pattern.equals(((Key) obj).pattern)
@@ -1885,7 +1885,7 @@ public class SqlFunctions {
 
   /** SQL <code>=</code> operator applied to Object[] values (neither may be
    * null). */
-  public static boolean eq(Object [] b0, Object [] b1) {
+  public static boolean eq(@Nullable Object [] b0, @Nullable Object [] b1) {
     return Arrays.deepEquals(b0, b1);
   }
 
@@ -2324,7 +2324,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>/</code> operator applied to nullable long and int values. */
-  public static @PolyNull Long divide(@PolyNull Long b0, @PolyNull Integer b1) {
+  public static @PolyNull Long divide(Long b0, @PolyNull Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() / b1.longValue());
@@ -3664,7 +3664,7 @@ public class SqlFunctions {
    * @see #toInt(java.sql.Date, TimeZone)
    * @see #internalToDate(Integer) converse method
    */
-  public static Integer toIntOptional(java.sql.Date v) {
+  public static @PolyNull Integer toIntOptional(java.sql.Date v) {
     return v == null
         ? castNonNull(null)
         : toInt(v);
@@ -3677,7 +3677,7 @@ public class SqlFunctions {
    *
    * @see #toInt(java.sql.Date, TimeZone)
    */
-  public static Integer toIntOptional(java.sql.Date v,
+  public static @PolyNull Integer toIntOptional(java.sql.Date v,
       TimeZone timeZone) {
     return v == null
         ? castNonNull(null)
@@ -3705,7 +3705,7 @@ public class SqlFunctions {
    * @see #toInt(java.sql.Time)
    * @see #internalToTime(Integer) converse method
    */
-  public static Integer toIntOptional(java.sql.Time v) {
+  public static @PolyNull Integer toIntOptional(java.sql.Time v) {
     return v == null ? castNonNull(null) : toInt(v);
   }
 
@@ -3915,7 +3915,7 @@ public class SqlFunctions {
    * @see #internalToDate(int)
    * @see #toIntOptional(java.sql.Date) converse method
    */
-  public static java.sql.Date internalToDate(Integer v) {
+  public static java.sql.Date internalToDate(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToDate(v.intValue());
   }
 
@@ -3939,7 +3939,7 @@ public class SqlFunctions {
    * @see #internalToTime(Integer)
    * @see #toIntOptional(java.sql.Time) converse method
    */
-  public static java.sql.Time internalToTime(Integer v) {
+  public static java.sql.Time internalToTime(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
   }
 
@@ -4244,7 +4244,7 @@ public class SqlFunctions {
    * @see #toLongOptional(Timestamp, TimeZone)
    * @see #toLongOptional(Timestamp) converse method
    */
-  public static java.sql.Timestamp internalToTimestamp(Long v) {
+  public static java.sql.Timestamp internalToTimestamp(@PolyNull Long v) {
     return v == null ? castNonNull(null) : internalToTimestamp(v.longValue());
   }
 
@@ -5179,7 +5179,7 @@ public class SqlFunctions {
   }
 
   /** Converts a JDBC array to a list. */
-  public static List arrayToList(final java.sql.Array a) {
+  public static @PolyNull List arrayToList(final java.sql.Array a) {
     if (a == null) {
       return castNonNull(null);
     }
