@@ -66,6 +66,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -2189,45 +2190,45 @@ public class SqlFunctions {
 
   /** SQL <code>+</code> operator applied to int values; left side may be
    * null. */
-  public static Integer plus(Integer b0, int b1) {
+  public static @PolyNull Integer plus(@PolyNull Integer b0, int b1) {
     return b0 == null ? castNonNull(null) : (b0 + b1);
   }
 
   /** SQL <code>+</code> operator applied to int values; right side may be
    * null. */
-  public static Integer plus(int b0, Integer b1) {
+  public static @PolyNull Integer plus(int b0, @PolyNull Integer b1) {
     return b1 == null ? castNonNull(null) : (b0 + b1);
   }
 
   /** SQL <code>+</code> operator applied to nullable int values. */
-  public static Integer plus(Integer b0, Integer b1) {
+  public static @PolyNull Integer plus(@PolyNull Integer b0, @PolyNull Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 + b1);
   }
 
   /** SQL <code>+</code> operator applied to nullable long and int values. */
-  public static Long plus(Long b0, Integer b1) {
+  public static @PolyNull Long plus(@PolyNull Long b0, @PolyNull Integer b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() + b1.longValue());
   }
 
   /** SQL <code>+</code> operator applied to nullable int and long values. */
-  public static Long plus(Integer b0, Long b1) {
+  public static @PolyNull Long plus(@PolyNull Integer b0, @PolyNull Long b1) {
     return (b0 == null || b1 == null)
         ? castNonNull(null)
         : (b0.longValue() + b1.longValue());
   }
 
   /** SQL <code>+</code> operator applied to BigDecimal values. */
-  public static BigDecimal plus(BigDecimal b0,
-      BigDecimal b1) {
+  public static @PolyNull BigDecimal plus(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : b0.add(b1);
   }
 
   /** SQL <code>+</code> operator applied to Object values (at least one operand
    * has ANY type; either may be null). */
-  public static Object plusAny(Object b0,
-      Object b1) {
+  public static @PolyNull Object plusAny(@PolyNull Object b0,
+      @PolyNull Object b1) {
     if (b0 == null || b1 == null) {
       return castNonNull(null);
     }
