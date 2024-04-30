@@ -65,6 +65,8 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -283,7 +285,7 @@ public class SqlFunctions {
   }
 
   /** SQL FROM_BASE64(string) function. */
-  public static ByteString fromBase64(String base64) {
+  public static @Nullable ByteString fromBase64(String base64) {
     try {
       base64 = FROM_BASE64_REGEXP.matcher(base64).replaceAll("");
       return new ByteString(Base64.getDecoder().decode(base64));
@@ -500,7 +502,7 @@ public class SqlFunctions {
     /** SQL {@code REGEXP_EXTRACT(value, regexp)} function.
      * Returns NULL if there is no match. Returns an exception if regex is invalid.
      * Uses position=1 and occurrence=1 as default values when not specified. */
-    public String regexpExtract(String value, String regex) {
+    public @Nullable String regexpExtract(String value, String regex) {
       return regexpExtract(value, regex, 1, 1);
     }
 
@@ -508,14 +510,14 @@ public class SqlFunctions {
      * Returns NULL if there is no match, or if position is beyond range.
      * Returns an exception if regex or position is invalid.
      * Uses occurrence=1 as default value when not specified. */
-    public String regexpExtract(String value, String regex, int position) {
+    public @Nullable String regexpExtract(String value, String regex, int position) {
       return regexpExtract(value, regex, position, 1);
     }
 
     /** SQL {@code REGEXP_EXTRACT(value, regexp, position, occurrence)} function.
      * Returns NULL if there is no match, or if position or occurrence are beyond range.
      * Returns an exception if regex, position or occurrence are invalid. */
-    public String regexpExtract(String value, String regex, int position,
+    public @Nullable String regexpExtract(String value, String regex, int position,
         int occurrence) {
       // Uses java.util.regex as a standard for regex processing
       // in Calcite instead of RE2 used by BigQuery/GoogleSQL
@@ -646,7 +648,7 @@ public class SqlFunctions {
 
     /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
     public String regexpReplace(String s, String regex, String replacement,
-        int pos, int occurrence, String matchType) {
+        int pos, int occurrence, @Nullable String matchType) {
       if (pos < 1 || pos > s.length()) {
         throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
       }
@@ -899,7 +901,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>CONTAINS_SUBSTR(rows, substr)</code> operator. */
-  public static Boolean containsSubstr(Object [] rows,
+  public static @Nullable Boolean containsSubstr(Object [] rows,
       String substr) {
     // If rows have null arguments, it should return TRUE if substr is found, otherwise NULL
     boolean nullFlag = false;
@@ -918,7 +920,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>CONTAINS_SUBSTR(arr, substr)</code> operator. */
-  public static Boolean containsSubstr(List arr, String substr) {
+  public static @Nullable Boolean containsSubstr(List arr, String substr) {
     // If array has null arguments, it should return TRUE if substr is found, otherwise NULL
     boolean nullFlag = false;
     for (Object item : arr) {
@@ -1200,9 +1202,9 @@ public class SqlFunctions {
    * in the comma-delimited list textStr. Returns 0,
    * if the matchStr is not found or if the matchStr
    * contains a comma. */
-  public static Integer findInSet(
-      String matchStr,
-      String textStr) {
+  public static @Nullable Integer findInSet(
+      @Nullable String matchStr,
+      @Nullable String textStr) {
     if (matchStr == null || textStr == null) {
       return null;
     }
