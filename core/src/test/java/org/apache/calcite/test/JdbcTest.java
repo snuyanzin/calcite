@@ -8067,6 +8067,20 @@ public class JdbcTest {
         .returns("C1=[1,2]; C2=[1, 2]; C3=[]; C4=[[1, 2]]\n");
   }
 
+  @Test void testJsonValueError() {
+    java.sql.SQLException t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_VALUE(v, 'lax $.a' RETURNING INTEGER) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": \"abc\"}')) AS t(v)\n"
+                    + "limit 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("java.lang.String cannot be cast to"));
+  }
+
   @Test void testJsonQueryError() {
     java.sql.SQLException t =
         assertThrows(
@@ -8093,6 +8107,18 @@ public class JdbcTest {
 
     assertThat(
         t.getMessage(), containsString("EMPTY_OBJECT is illegal for given return type"));
+
+    t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_QUERY(v, 'lax $.a' RETURNING INTEGER) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": [\"a\", \"b\"]}')) AS t(v)\n"
+                    + "limit 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("java.util.ArrayList cannot be cast to"));
   }
 
   @Test void testJsonDepth() {
