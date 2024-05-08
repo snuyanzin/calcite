@@ -2917,9 +2917,9 @@ public class RexImpTable {
 
       final Expression jsonize;
       if (SqlTypeUtil.inCharFamily(call.getType())) {
-        jsonize = Expressions.constant(true);
+        jsonize = TRUE_EXPR;
       } else {
-        jsonize = Expressions.constant(false);
+        jsonize = FALSE_EXPR;
       }
       newOperands.add(jsonize);
 
