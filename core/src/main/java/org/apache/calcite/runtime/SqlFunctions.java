@@ -187,7 +187,7 @@ public class SqlFunctions {
    * <p>This is a straw man of an implementation whose main goal is to prove
    * that sequences can be parsed, validated and planned. A real application
    * will want persistent values for sequences, shared among threads. */
-  private static final ThreadLocal<@Nullable Map<String, AtomicLong>> THREAD_SEQUENCES =
+  private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
       ThreadLocal.withInitial(HashMap::new);
 
   private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
