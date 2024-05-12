@@ -926,7 +926,6 @@ public class SqlFunctions {
       String jsonScope) {
     LinkedHashMap<String, String> map =
         (LinkedHashMap<String, String>) JsonFunctions.dejsonize(jsonString);
-    assert map != null;
     Set<String> keys = map.keySet();
     Collection<String> values = map.values();
     try {
@@ -1333,7 +1332,6 @@ public class SqlFunctions {
       if (codePoint == null) {
         return null;
       }
-      assert codePoint instanceof Number;
       long cp = ((Number) codePoint).longValue();
       if (cp < 0 || cp > 255) {
         throw RESOURCE.inputArgumentsOfFunctionOutOfRange(
@@ -1354,7 +1352,6 @@ public class SqlFunctions {
       if (codePoint == null) {
         return null;
       }
-      assert codePoint instanceof Number;
       long cp = ((Number) codePoint).longValue();
       // Each valid code point should fall within the range of [0, 0xD7FF] and [0xE000, 0x10FFFF]
       if (cp >= 0 && cp <= 0xD7FF || cp >= 0xE000 && cp <= 0x10FFFF) {
