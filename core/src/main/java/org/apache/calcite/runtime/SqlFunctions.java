@@ -181,21 +181,6 @@ public class SqlFunctions {
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
 
-  @SuppressWarnings("unused")
-  private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
-      lists -> {
-        final List<Enumerator<@Nullable Object>> enumerators = new ArrayList<>();
-        for (Object list : lists) {
-          enumerators.add(Linq4j.enumerator((List) list));
-        }
-        final Enumerator<List<@Nullable Object>> product = Linq4j.product(enumerators);
-        return new AbstractEnumerable<@Nullable Object[]>() {
-          @Override public Enumerator<@Nullable Object[]> enumerator() {
-            return Linq4j.transform(product, List::toArray);
-          }
-        };
-      };
-
   /** Holds, for each thread, a map from sequence name to sequence current
    * value.
    *
