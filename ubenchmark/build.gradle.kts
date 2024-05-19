@@ -44,7 +44,7 @@ tasks.withType<JavaExec>().configureEach {
         // At best jmh plugin should add the generated directories to the Gradle model, however,
         // currently it builds the jar only :-/
         // IntelliJ IDEA "execute main method" adds a JavaExec task, so we configure it
-        classpath(File(buildDir, "jmh-generated-classes"))
-        classpath(File(buildDir, "jmh-generated-resources"))
+        classpath(File(layout.buildDirectory.asFile.get(), "jmh-generated-classes"))
+        classpath(File(layout.buildDirectory.asFile.get(), "jmh-generated-resources"))
     }
 }

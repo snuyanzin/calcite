@@ -25,6 +25,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import java.util.Locale
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -234,7 +235,7 @@ dependencies {
     }
     if (enableJacoco) {
         for (p in subprojects) {
-            if (!p.name.equals("bom")) {
+            if (p.name != "bom") {
                 jacocoAggregation(p)
             }
         }
@@ -504,7 +505,7 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
+        configure<JavaPluginExtension> {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
@@ -957,9 +958,11 @@ allprojects {
                             asNode()
                         }
                         name.set(
-                            (project.findProperty("artifact.name") as? String) ?: "Calcite ${project.name.capitalize()}"
+                            (project.findProperty("artifact.name") as? String) ?: "Calcite ${project.name.replaceFirstChar {
+                                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }}"
                         )
-                        description.set(project.description ?: "Calcite ${project.name.capitalize()}")
+                        description.set(project.description ?: "Calcite ${project.name.replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }}")
                         inceptionYear.set("2012")
                         url.set("https://calcite.apache.org")
                         licenses {
