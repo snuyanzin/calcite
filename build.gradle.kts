@@ -816,7 +816,7 @@ allprojects {
                 }
             }
             configureEach<Test> {
-                outputs.cacheIf("test results depend on the database configuration, so we souldn't cache it") {
+                outputs.cacheIf("test results depend on the database configuration, so we shouldn't cache it") {
                     false
                 }
                 useJUnitPlatform {
