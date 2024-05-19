@@ -32,7 +32,7 @@ adapters.
 ## Building from a source distribution
 
 Prerequisite is Java (JDK 8, 11, 17 or 19)
-and Gradle (version 7.6.1) on your path.
+and Gradle (version 8.7) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
