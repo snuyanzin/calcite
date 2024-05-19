@@ -31,6 +31,7 @@ import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
+    base
     // java-base is needed for platform(...) resolution,
     // see https://github.com/gradle/gradle/issues/14822
     `java-base`
@@ -901,8 +902,9 @@ allprojects {
             archives(sourcesJar)
         }
 
-        val archivesBaseName = "calcite-$name"
-        setProperty("archivesBaseName", archivesBaseName)
+        base {
+            archivesName.set("calcite-$name")
+        }
 
         configure<PublishingExtension> {
             if (project.path == ":") {
@@ -915,7 +917,7 @@ allprojects {
             }
             publications {
                 create<MavenPublication>(project.name) {
-                    artifactId = archivesBaseName
+                    artifactId = base.archivesName.get()
                     version = rootProject.version.toString()
                     description = project.description
                     from(components["java"])
