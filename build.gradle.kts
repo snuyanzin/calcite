@@ -208,7 +208,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
-    setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregateIncludingTests")))
+    setDestinationDir(file("$buildDir/docs/javadocAggregateIncludingTests"))
 }
 
 val adaptersForSqlline = listOf(

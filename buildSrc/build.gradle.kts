@@ -57,7 +57,7 @@ fun Project.applyKotlinProjectConventions() {
         apply(plugin = "org.gradle.kotlin.kotlin-dsl")
     }
 
-    tasks.withType<KotlinCompile>() {
+    tasks.withType<KotlinCompile> {
         kotlinOptions {
             jvmTarget = "1.8"
         }
