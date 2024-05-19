@@ -25,6 +25,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import java.net.URI
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -63,6 +64,15 @@ plugins {
 repositories {
     // At least for RAT
     mavenCentral()
+}
+
+tasks.wrapper {
+    distributionType = Wrapper.DistributionType.BIN
+    doLast {
+        val sha256Uri = URI("$distributionUrl.sha256")
+        val sha256Sum = String(sha256Uri.toURL().readBytes())
+        propertiesFile.appendText("distributionSha256Sum=${sha256Sum}\n")
+    }
 }
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: false)
@@ -183,7 +193,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
-    setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregate")))
+    setDestinationDir(file("$buildDir/docs/javadocAggregate"))
 }
 
 /** Similar to {@link #javadocAggregate} but includes tests.
@@ -439,7 +449,7 @@ allprojects {
             // Unfortunately, Gradle passes only config_loc variable by default, so we make
             // all the paths relative to config_loc
             configProperties!!["cache_file"] =
-                layout.buildDirectory.asFile.get().resolve("checkstyle/cacheFile").relativeTo(configLoc)
+                buildDir.resolve("checkstyle/cacheFile").relativeTo(configLoc)
         }
         // afterEvaluate is to support late sourceSet addition (e.g. jmh sourceset)
         afterEvaluate {
