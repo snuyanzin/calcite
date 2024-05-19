@@ -224,6 +224,21 @@ val sqllineClasspath by configurations.creating {
     }
 }
 
+@CacheableRule
+abstract class AddDependenciesRule @Inject constructor(val dependencies: List<String>) : ComponentMetadataRule {
+    override fun execute(context: ComponentMetadataContext) {
+        listOf("compile", "runtime").forEach { base ->
+            context.details.withVariant(base) {
+                withDependencies {
+                    dependencies.forEach {
+                        add(it)
+                    }
+                }
+            }
+        }
+    }
+}
+
 dependencies {
     sqllineClasspath(platform(project(":bom")))
     sqllineClasspath(project(":testkit"))
@@ -231,8 +246,15 @@ dependencies {
     for (p in adaptersForSqlline) {
         sqllineClasspath(project(p))
     }
+
+    components {
+        for (m in dataSetsForSqlline) {
+            withModule<AddDependenciesRule>(m)
+        }
+    }
+
     for (m in dataSetsForSqlline) {
-        sqllineClasspath(module(m))
+        sqllineClasspath(m)
     }
     if (enableJacoco) {
         for (p in subprojects) {
