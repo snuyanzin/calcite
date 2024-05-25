@@ -7987,6 +7987,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
     sql("select * from dept, lateral table(ramp(deptno)) CROSS JOIN (VALUES ('A'), ('B'))")
         .ok();
+    sql("select * from dept, (VALUES ('A'), ('B')) CROSS JOIN lateral table(ramp(deptno))")
+        .ok();
     sql("select * from emp, lateral table(ramp(^z^.i)) as z, dept")
         .fails("Table 'Z' not found");
     sql("select * from emp, lateral table(ramp(^dept^.deptno)), dept")

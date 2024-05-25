@@ -2127,17 +2127,6 @@ SqlNode JoinTable(SqlNode e) :
         }
     )
 |
-    <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
-                e2 = TableRef() {
-                    return new SqlJoin(joinType.getParserPosition(),
-                        e,
-                        SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                        joinType,
-                        e2,
-                        JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
-                        null);
-                }
-|
     <CROSS> { joinType = JoinType.CROSS.symbol(getPos()); } <APPLY>
     e2 = TableRef2(true) {
         if (!this.conformance.isApplyAllowed()) {
@@ -2164,6 +2153,17 @@ SqlNode JoinTable(SqlNode e) :
             e2,
             JoinConditionType.ON.symbol(SqlParserPos.ZERO),
             SqlLiteral.createBoolean(true, joinType.getParserPosition()));
+    }
+|
+    <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
+    e2 = TableRef() {
+        return new SqlJoin(joinType.getParserPosition(),
+            e,
+            SqlLiteral.createBoolean(false, joinType.getParserPosition()),
+            joinType,
+            e2,
+            JoinConditionType.NONE.symbol(SqlParserPos.ZERO),
+            null);
     }
 }
 
