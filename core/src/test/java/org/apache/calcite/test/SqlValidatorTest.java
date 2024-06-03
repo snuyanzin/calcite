@@ -7985,10 +7985,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // FROM clause. And it can't see itself.
     sql("select * from emp, lateral table(ramp(emp.deptno)), dept")
         .ok();
-    sql("select * from dept, lateral table(ramp(deptno)) CROSS JOIN (VALUES ('A'), ('B'))")
+    sql("select * from dept cross join lateral table(ramp(dept.deptno)) cross join (VALUES ('A'), ('B'))  ")
         .ok();
-    sql("select * from dept, (VALUES ('A'), ('B')) CROSS JOIN lateral table(ramp(deptno))")
-        .ok();
+    sql("select * from dept cross join ((VALUES ('A'), ('B'))^,^ (VALUES ('A'), ('B')))")
+        .fails("(?s)Encountered \", \\(\" at .*");
     sql("select * from emp, lateral table(ramp(^z^.i)) as z, dept")
         .fails("Table 'Z' not found");
     sql("select * from emp, lateral table(ramp(^dept^.deptno)), dept")

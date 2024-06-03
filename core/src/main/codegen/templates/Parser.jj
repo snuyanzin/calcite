@@ -2155,8 +2155,10 @@ SqlNode JoinTable(SqlNode e) :
             SqlLiteral.createBoolean(true, joinType.getParserPosition()));
     }
 |
+    LOOKAHEAD(2)
     <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
-    e2 = TableRef() {
+    <LATERAL>
+    e2 = TableRef3(ExprContext.ACCEPT_QUERY, true) {
         return new SqlJoin(joinType.getParserPosition(),
             e,
             SqlLiteral.createBoolean(false, joinType.getParserPosition()),
