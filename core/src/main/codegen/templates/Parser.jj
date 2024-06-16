@@ -2075,6 +2075,14 @@ SqlNode JoinTable(SqlNode e) :
     SqlNode e2, condition;
     final SqlLiteral natural, joinType, on, using;
     SqlNodeList list;
+    SqlIdentifier alias;
+    boolean lateral;
+    final SqlNodeList columnAliasList;
+    final SqlIdentifier tableName;
+    SqlNode tableRef;
+    final Span s;
+    SqlNodeList args;
+    SqlUnnestOperator unnestOp = SqlStdOperatorTable.UNNEST;
 }
 {
     // LOOKAHEAD(3) is needed here rather than a LOOKAHEAD(2) because JavaCC
@@ -2158,7 +2166,83 @@ SqlNode JoinTable(SqlNode e) :
     LOOKAHEAD(2)
     <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
     <LATERAL>
-    e2 = TableRef3(ExprContext.ACCEPT_QUERY, true) {
+    (
+        LOOKAHEAD(2)
+        tableName = CompoundTableIdentifier() { s = span(); }
+        (
+            // Table call syntax like FROM a.b() instead of FROM TABLE(a.b())
+            // Three tokens needed to disambiguate EXTEND syntax from CALCITE-493.
+            // Example: "FROM EventLog(lastGCTime TIME)".
+            LOOKAHEAD(3)
+            e2 = ImplicitTableFunctionCallArgs(tableName)
+        |
+            ( e2 = TableHints(tableName) | { e2 = tableName; } )
+            [ e2 = ExtendTable(e2) ]
+            e2 = Over(e2)
+            [ e2 = Snapshot(e2) ]
+            [ e2 = MatchRecognize(e2) ]
+        )
+    |
+        LOOKAHEAD(2)
+        [ <LATERAL> { lateral = true; } ]
+        e2 = ParenthesizedExpression(ExprContext.ACCEPT_SUB_QUERY)
+        e2 = Over(e2)
+        e2 = addLateral(e2, lateral)
+        [ e2 = MatchRecognize(e2) ]
+    |
+        <UNNEST> { s = span(); }
+        args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_SUB_QUERY)
+        [
+            <WITH> <ORDINALITY> {
+                unnestOp = SqlStdOperatorTable.UNNEST_WITH_ORDINALITY;
+            }
+        ]
+        {
+            e2 = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
+        }
+    |
+        [ <LATERAL> { lateral = true; } ]
+        e2 = TableFunctionCall()
+        e2 = addLateral(e2, lateral)
+    |
+        e2 = ExtendedTableRef()
+    )
+    [
+        LOOKAHEAD(2)
+        e2 = Pivot(e2)
+    ]
+    [
+        LOOKAHEAD(2)
+        e2 = Unpivot(e2)
+    ]
+    [
+        [ <AS> ] alias = SimpleIdentifier()
+        (
+            columnAliasList = ParenthesizedSimpleIdentifierList()
+        |   { columnAliasList = null; }
+        )
+        {
+            // Standard SQL (and Postgres) allow applying "AS alias" to a JOIN,
+            // e.g. "FROM (a CROSS JOIN b) AS c". The new alias obscures the
+            // internal aliases, and columns cannot be referenced if they are
+            // not unique. TODO: Support this behavior; see
+            // [CALCITE-5168] Allow AS after parenthesized JOIN
+            checkNotJoin(e2);
+            if (columnAliasList == null) {
+                e2 = SqlStdOperatorTable.AS.createCall(
+                    Span.of(e2).end(this), e2, alias);
+            } else {
+                List<SqlNode> idList = new ArrayList<SqlNode>();
+                idList.add(e2);
+                idList.add(alias);
+                idList.addAll(columnAliasList.getList());
+                e2 = SqlStdOperatorTable.AS.createCall(
+                    Span.of(e2).end(this), idList);
+            }
+        }
+    ]
+    [ e2 = Tablesample(e2) ]
+    {
         return new SqlJoin(joinType.getParserPosition(),
             e,
             SqlLiteral.createBoolean(false, joinType.getParserPosition()),
