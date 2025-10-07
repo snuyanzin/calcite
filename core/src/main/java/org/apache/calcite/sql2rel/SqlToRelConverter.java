@@ -2508,6 +2508,15 @@ public class SqlToRelConverter {
       convertCollectionTable(bb, call2);
       return;
 
+    case LATERAL:
+      call = (SqlCall) from;
+
+      // Dig out real call; TABLE() wrapper is just syntactic.
+      assert call.getOperandList().size() == 1;
+      final SqlCall callLateral = call.operand(0);
+      convertFrom(bb, callLateral, fieldNames);
+      return;
+
     default:
       throw new AssertionError("not a join operator " + from);
     }
