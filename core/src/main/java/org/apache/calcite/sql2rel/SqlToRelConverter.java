@@ -3228,35 +3228,35 @@ public class SqlToRelConverter {
         fieldMapping.put(Pair.of(correlName, originalFieldIndex), childNamespaceIndex);
         pos = childNamespaceIndex;
       } else {
-      Map<Integer, Integer> exprProjection =
-          bb.mapRootRelToFieldProjection.get(bb.root);
-      if (exprProjection != null) {
-        // sub-query can reference group by keys projected from
-        // the root of the outer relation.
-        Integer projection = exprProjection.get(pos);
-        if (projection != null) {
-          fieldMapping.put(Pair.of(correlName, originalFieldIndex), projection);
-          pos = projection;
-        } else {
-          LogicalAggregate root = (LogicalAggregate) bb.root;
-            LogicalProject lp = ((LogicalProject) root.getInputs().get(0));
+        Map<Integer, Integer> exprProjection =
+            bb.mapRootRelToFieldProjection.get(bb.root);
+        if (exprProjection != null) {
+          // sub-query can reference group by keys projected from
+          // the root of the outer relation.
+          Integer projection = exprProjection.get(pos);
+          if (projection != null) {
+            fieldMapping.put(Pair.of(correlName, originalFieldIndex), projection);
+            pos = projection;
+          } else {
+            LogicalAggregate root = (LogicalAggregate) bb.root;
+            LogicalProject lp = (LogicalProject) root.getInputs().get(0);
             for (ImmutableBitSet bs: root.getGroupSets()) {
               for (Integer i: bs.asList()) {
-              RexNode rn = lp.getProjects().get(i);
-              if (RexUtil.isLiteral(rn, true)) {
-                groupByAll = true;
-                missingGroupErrMsg = null;
-              } else {
-                if (!groupByAll && missingGroupErrMsg == null) {
-                  missingGroupErrMsg = "Identifier '" + lookup.originalRelName
-                      + "." + originalFieldName + "' is not a group expr";
+                RexNode rn = lp.getProjects().get(i);
+                if (RexUtil.isLiteral(rn, true)) {
+                  groupByAll = true;
+                  missingGroupErrMsg = null;
+                } else {
+                  if (!groupByAll && missingGroupErrMsg == null) {
+                    missingGroupErrMsg = "Identifier '" + lookup.originalRelName
+                        + "." + originalFieldName + "' is not a group expr";
+                  }
                 }
               }
             }
-              }
-          fieldMapping.put(Pair.of(correlName, originalFieldIndex), childNamespaceIndex);
-          pos = childNamespaceIndex;
-        }
+            fieldMapping.put(Pair.of(correlName, originalFieldIndex), childNamespaceIndex);
+            pos = childNamespaceIndex;
+          }
         }
       }
 
