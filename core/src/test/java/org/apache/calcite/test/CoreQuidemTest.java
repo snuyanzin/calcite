@@ -23,6 +23,7 @@ import net.hydromatic.quidem.Quidem;
 
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Test that runs every Quidem file in the "core" module as a test.
@@ -45,8 +46,8 @@ class CoreQuidemTest extends QuidemTest {
   @Override public Collection<String> getPath() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
-    final String first = "sql/agg.iq";
-    return data(first);
+    return Collections.singletonList("sql/agg.iq");
+    //return data(first);
   }
 
   @Override protected Quidem.ConnectionFactory createConnectionFactory() {

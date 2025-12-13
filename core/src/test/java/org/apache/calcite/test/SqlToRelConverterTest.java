@@ -5055,4 +5055,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  @Test void testAggFilterWithInSubQuery1() {
+    final String sql = "select\n"
+        + "  max(deptno) from emp group by 1 having exists (select 1 from empnullables where emp.sal < deptno)";
+    sql(sql).withExpand(false).ok();
+  }
 }

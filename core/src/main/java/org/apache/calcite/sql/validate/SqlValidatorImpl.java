@@ -4484,10 +4484,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
+    boolean groupByAllAdded = false;
     for (SqlNode groupItem : groupList) {
       SqlNode expandedItem =
           extendedExpand(groupItem, groupScope, select, Clause.GROUP_BY);
-      expandedList.add(expandedItem);
+      if (SqlUtil.isLiteral(expandedItem)) {
+        if (!groupByAllAdded) {
+          for (SqlNode sqlNode : select.getSelectList()) {
+            if (SqlUtil.isLiteral(sqlNode)
+                || sqlNode instanceof SqlCall && (((SqlCall) sqlNode).getOperator() instanceof SqlAggFunction || ((SqlCall) sqlNode).getOperator() instanceof SqlWindowTableFunction)) {
+              continue;
+            }
+            expandedList.add(extendedExpand(sqlNode, groupScope, select, Clause.GROUP_BY));
+          }
+          groupByAllAdded = true;
+        }
+      } else {
+        expandedList.add(expandedItem);
+      }
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
     select.setGroupBy(groupList);
