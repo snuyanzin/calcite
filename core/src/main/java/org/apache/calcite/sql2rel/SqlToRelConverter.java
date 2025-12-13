@@ -3167,6 +3167,8 @@ public class SqlToRelConverter {
     // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex for aggregation
     final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping = new HashMap<>();
 
+    boolean groupByAll = false;
+    String missingGroupErrMsg = null;
     for (CorrelationId correlName : correlatedVariables) {
       DeferredLookup lookup =
           requireNonNull(mapCorrelToDeferred.get(correlName),
@@ -3222,6 +3224,10 @@ public class SqlToRelConverter {
 
       // bb.root is an aggregate and only projects group by
       // keys.
+      if (groupByAll) {
+        fieldMapping.put(Pair.of(correlName, originalFieldIndex), childNamespaceIndex);
+        pos = childNamespaceIndex;
+      } else {
       Map<Integer, Integer> exprProjection =
           bb.mapRootRelToFieldProjection.get(bb.root);
       if (exprProjection != null) {
@@ -3232,14 +3238,35 @@ public class SqlToRelConverter {
           fieldMapping.put(Pair.of(correlName, originalFieldIndex), projection);
           pos = projection;
         } else {
-          // correl not grouped
-          throw new AssertionError("Identifier '" + lookup.originalRelName
-              + "." + originalFieldName + "' is not a group expr");
+          LogicalAggregate root = (LogicalAggregate) bb.root;
+            LogicalProject lp = ((LogicalProject) root.getInputs().get(0));
+            for (ImmutableBitSet bs: root.getGroupSets()) {
+              for (Integer i: bs.asList()) {
+              RexNode rn = lp.getProjects().get(i);
+              if (RexUtil.isLiteral(rn, true)) {
+                groupByAll = true;
+                missingGroupErrMsg = null;
+              } else {
+                if (!groupByAll && missingGroupErrMsg == null) {
+                  missingGroupErrMsg = "Identifier '" + lookup.originalRelName
+                      + "." + originalFieldName + "' is not a group expr";
+                }
+              }
+            }
+              }
+          fieldMapping.put(Pair.of(correlName, originalFieldIndex), childNamespaceIndex);
+          pos = childNamespaceIndex;
+        }
         }
       }
 
       requiredColumns.set(pos);
       correlNames.add(correlName);
+    }
+
+    if (missingGroupErrMsg != null) {
+      // correl not grouped
+      throw new AssertionError(missingGroupErrMsg);
     }
 
     if (correlNames.isEmpty()) {

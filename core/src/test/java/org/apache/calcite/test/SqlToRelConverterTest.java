@@ -5986,4 +5986,28 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "and t1.ename in (select t3.ename from emp t3 )";
     sql(sql).ok();
   }
+
+  @Test void testAggFilterWithInSubQuery1() {
+    final String sql = "select\n"
+        + "  max(deptno) from emp group by 'q' having exists (select 1 from empnullables where emp.deptno < deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testAggFilterWithInSubQuery2() {
+    final String sql = "select\n"
+        + "  sum(sal), max(deptno) from emp group by sal, 'q' having exists (select 1 from empnullables where emp.comm < deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testAggFilterWithInSubQuery3() {
+    final String sql = "select\n"
+        + "  sum(sal), max(deptno) from emp group by 'q', sal having exists (select 1 from empnullables where emp.comm < deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testAggFilterWithInSubQuery4() {
+    final String sql = "select\n"
+        + "  sum(sal), max(deptno) from emp where comm > 0 group by  sal, 1 having exists (select emp.comm from empnullables where emp.comm < deptno)";
+    sql(sql).withExpand(false).ok();
+  }
 }
