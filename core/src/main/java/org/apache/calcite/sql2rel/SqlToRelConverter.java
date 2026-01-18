@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql2rel;
 
+import com.google.common.collect.Sets;
+
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -3571,7 +3573,7 @@ public class SqlToRelConverter {
   protected void convertAgg(Blackboard bb, SqlSelect select,
       List<SqlNode> orderExprList, List<SqlNode> extraList) {
     requireNonNull(bb.root, "bb.root");
-    List<SqlNode> groupList = first(select.getGroup(), ImmutableList.of());
+    List<SqlNode> groupList = getGroupList(select);
     List<SqlNode> selectList = select.getSelectList();
     @Nullable SqlNode having = select.getHaving();
 
@@ -3582,6 +3584,30 @@ public class SqlToRelConverter {
         orderExprList, extraList);
   }
 
+  private List<SqlNode> getGroupList(SqlSelect select) {
+    List<SqlNode> groupList = select.getGroup();
+    if (groupList == null || groupList.isEmpty()) {
+      return ImmutableList.of();
+    }
+
+    final List<SqlNode> list = new ArrayList<>();
+    boolean isGroupByAll = false;
+    for (SqlNode sqlNode: groupList) {
+      if (!isGroupByAll && SqlUtil.isLiteral(sqlNode, true) || sqlNode.getKind() == SqlKind.GROUP_BY_ALL) {
+        Set<SqlNode> nodes = Sets.newIdentityHashSet();
+        for (SqlNode selectItem: select.getSelectList()) {
+          if (!SqlUtil.isLiteral(selectItem)
+            && !(selectItem instanceof SqlCall && ((SqlCall) selectItem).getOperator() instanceof SqlAggFunction)) {
+            if (nodes.add(selectItem)) {
+              list.add(selectItem);
+            }
+          }
+        }
+        isGroupByAll = true;
+      }
+    }
+    return list;
+  }
   private void createAggImpl(Blackboard bb,
       final AggConverter aggConverter,
       List<SqlNode> selectList,

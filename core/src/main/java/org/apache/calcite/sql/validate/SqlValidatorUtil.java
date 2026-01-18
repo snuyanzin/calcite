@@ -1601,10 +1601,11 @@ public class SqlValidatorUtil {
     final List<SqlNode> groupExprs = new ArrayList<>();
     final Map<Integer, Integer> groupExprProjection = new HashMap<>();
     final List<ImmutableBitSet> flatGroupSets = new ArrayList<>();
+    boolean groupByAll = false;
 
     AggregatingSelectScope.Resolved finish() {
       return new AggregatingSelectScope.Resolved(extraExprs, measureExprs,
-          groupExprs, flatGroupSets, groupExprProjection);
+          groupExprs, flatGroupSets, groupExprProjection, groupByAll);
     }
   }
 

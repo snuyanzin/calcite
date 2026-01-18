@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -84,6 +85,9 @@ class AggChecker extends SqlBasicVisitor<Void> {
 
   boolean isGroupExpr(SqlNode e) {
     for (SqlNode expr : Iterables.concat(extraExprs, measureExprs, groupExprs)) {
+      if (SqlUtil.isLiteral(expr, true) || expr.getKind() == SqlKind.GROUP_BY_ALL) {
+        return true;
+      }
       if (expr.equalsDeep(e, Litmus.IGNORE)) {
         return true;
       }

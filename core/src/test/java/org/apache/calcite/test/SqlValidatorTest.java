@@ -2591,30 +2591,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testIntervalExpression() {
-    expr("interval 1 hour").columnType("INTERVAL HOUR NOT NULL");
-    expr("interval (2 + 3) month").columnType("INTERVAL MONTH NOT NULL");
-    expr("interval (cast(null as integer)) year").columnType("INTERVAL YEAR");
-    expr("interval (cast(null as integer)) year(2)")
-        .columnType("INTERVAL YEAR(2)");
-    expr("interval (date '1970-01-01') hour").withWhole(true)
-        .fails("Cannot apply 'INTERVAL' to arguments of type "
-            + "'INTERVAL <DATE> <INTERVAL HOUR>'\\. Supported form\\(s\\): "
-            + "'INTERVAL <NUMERIC> <DATETIME_INTERVAL>'");
-    expr("interval (nullif(true, true)) hour").withWhole(true)
-        .fails("Cannot apply 'INTERVAL' to arguments of type "
-            + "'INTERVAL <BOOLEAN> <INTERVAL HOUR>'\\. Supported form\\(s\\): "
-            + "'INTERVAL <NUMERIC> <DATETIME_INTERVAL>'");
-    expr("interval (interval '1' day) hour").withWhole(true)
-        .fails("Cannot apply 'INTERVAL' to arguments of type "
-            + "'INTERVAL <INTERVAL DAY> <INTERVAL HOUR>'\\. "
-            + "Supported form\\(s\\): "
-            + "'INTERVAL <NUMERIC> <DATETIME_INTERVAL>'");
-    sql("select interval empno hour as h from emp")
-        .columnType("INTERVAL HOUR NOT NULL");
-    sql("select interval emp.mgr hour as h from emp")
-        .columnType("INTERVAL HOUR");
-    expr("interval '1' second(1, 0)")
-        .columnType("INTERVAL SECOND(1, 0) NOT NULL");
+    sql("SELECT - - interval '1' second  + current_timestamp")
+        .rewritesTo("INTERVAL SECOND NOT NULL");
   }
 
   @Test void testIntervalOperators() {

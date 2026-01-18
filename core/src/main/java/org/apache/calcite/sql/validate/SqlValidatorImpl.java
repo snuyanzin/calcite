@@ -5013,6 +5013,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         validateExpr(operand, groupByScope);
       }
       break;
+    case GROUP_BY_ALL:
+      break;
     default:
       validateExpr(groupByItem, groupByScope);
     }
@@ -5106,6 +5108,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case CUBE:
         node.validate(this, groupScope);
         break;
+      case GROUP_BY_ALL:
+        break;
       default:
         node.validateExpr(this, groupScope);
       }
@@ -5146,6 +5150,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case ROLLUP:
     case CUBE:
       validateGroupingSets(groupScope, aggregatingScope, (SqlCall) groupItem);
+      break;
+    case GROUP_BY_ALL:
       break;
     default:
       if (groupItem instanceof SqlNodeList) {

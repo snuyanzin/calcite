@@ -2693,6 +2693,17 @@ SqlNodeList GroupBy() :
     (
         <DISTINCT> { distinct = true; }
     |   <ALL> { distinct = false; }
+        [
+            list = GroupingElementList() {
+                    final SqlParserPos pos = s.end(this);
+                    return new SqlNodeList(list, pos);
+                }
+        ]
+        {
+        final SqlParserPos pos = s.end(this);
+        final List<SqlNode> list2 = ImmutableList.of(SqlInternalOperators.GROUP_BY_ALL.createCall(pos, Collections.emptyList()));
+        return new SqlNodeList(list2, pos);
+        }
     |   { distinct = false; }
     )
     list = GroupingElementList() {

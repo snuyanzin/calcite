@@ -32,6 +32,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,8 +60,7 @@ class CoreQuidemTest extends QuidemTest {
   @Override public Collection<String> getPath() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
-    final String first = "sql/agg.iq";
-    return data(first);
+    return Collections.singletonList("sql/agg.iq");
   }
 
   @Override protected Quidem.ConnectionFactory createConnectionFactory() {

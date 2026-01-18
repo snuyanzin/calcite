@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -94,10 +95,16 @@ public class AggregatingSelectScope
                 groupList.getParserPosition());
         groupByDistinct = true;
       }
-      for (SqlNode groupExpr : groupList) {
-        SqlValidatorUtil.analyzeGroupItem(this, analyzer, builder,
-            groupExpr);
-      }
+      if (groupList.size() == 1 && groupList.get(0).getKind() == SqlKind.GROUP_BY_ALL) {
+        for (SqlNode sqlNode: select.getSelectList()) {
+          if (!SqlUtil.isLiteral(sqlNode, true) && !(sqlNode instanceof SqlCall && (((SqlCall) sqlNode).getOperator().isAggregator()))) {
+            analyzer.groupByAll = true;
+          }
+        }
+      }   for (SqlNode groupExpr : groupList) {
+          SqlValidatorUtil.analyzeGroupItem(this, analyzer, builder,
+              groupExpr);
+        }
     }
 
     for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
@@ -252,16 +259,19 @@ public class AggregatingSelectScope
     public final ImmutableBitSet groupSet;
     public final ImmutableSortedMultiset<ImmutableBitSet> groupSets;
     public final Map<Integer, Integer> groupExprProjection;
+    public final boolean groupByAll;
 
     Resolved(List<SqlNode> extraExprList, List<SqlNode> measureExprList,
         List<SqlNode> groupExprList, Iterable<ImmutableBitSet> groupSets,
-        Map<Integer, Integer> groupExprProjection) {
+        Map<Integer, Integer> groupExprProjection,
+        boolean groupByAll) {
       this.extraExprList = ImmutableList.copyOf(extraExprList);
       this.measureExprList = ImmutableList.copyOf(measureExprList);
       this.groupExprList = ImmutableList.copyOf(groupExprList);
       this.groupSet = ImmutableBitSet.range(groupExprList.size());
       this.groupSets = ImmutableSortedMultiset.copyOf(groupSets);
       this.groupExprProjection = ImmutableMap.copyOf(groupExprProjection);
+      this.groupByAll = groupByAll;
     }
 
     /** Returns whether a field should be nullable due to grouping sets. */

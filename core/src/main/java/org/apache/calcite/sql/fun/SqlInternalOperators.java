@@ -203,6 +203,15 @@ public abstract class SqlInternalOperators {
   public static final SqlInternalOperator GROUP_BY_DISTINCT =
       new SqlRollupOperator("GROUP BY DISTINCT", SqlKind.GROUP_BY_DISTINCT);
 
+  /** {@code ALL} operator, occurs within {@code GROUP BY} clause. */
+  public static final SqlInternalOperator GROUP_BY_ALL =
+      new SqlInternalOperator("GROUP BY ALL", SqlKind.GROUP_BY_ALL, 4) {
+        // This is an internal operator, which should not be unparsed to sql.
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.print(call.getOperator().getName());
+        }
+      };
+
   /** Fetch operator is ONLY used for its precedence during unparsing. */
   public static final SqlOperator FETCH =
       SqlBasicOperator.create("FETCH")
