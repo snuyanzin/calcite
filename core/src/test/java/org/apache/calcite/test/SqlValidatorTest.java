@@ -2498,6 +2498,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO` AS `DEPTNO`, FINAL `EMP`.`ENAME` AS `ENAME` AS `ENAME`\n"
             + "PATTERN (`A` `B`)\n"
             + "DEFINE `A` AS (PREV(`A`.`EMPNO`, 0) = 123 AS `A`)) AS `T`");
+
+    // With FINAL field forward in MEASURES
+    sql("SELECT *\n"
+        + "FROM emp\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno,\n"
+        + "     FINAL emp.ename AS ename\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T")
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP` MATCH_RECOGNIZE(\n"
+            + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO` AS `DEPTNO`, FINAL `EMP`.`ENAME` AS `ENAME` AS `ENAME`\n"
+            + "PATTERN (`A` `B`)\n"
+            + "DEFINE `A` AS (PREV(`A`.`EMPNO`, 0) = 123 AS `A`)) AS `T`");
   }
 
   @Test void testIntervalTimeUnitEnumeration() {

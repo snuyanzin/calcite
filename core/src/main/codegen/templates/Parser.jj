@@ -3378,12 +3378,7 @@ void AddMeasureColumn(List<SqlNode> list) :
     final SqlIdentifier alias;
 }
 {
-    (
-      e = MatchRecognizeFunctionCall()
-      |
-      [ <FINAL> ]
-      e = Expression(ExprContext.ACCEPT_NON_QUERY)
-    )
+    e = Expression(ExprContext.ACCEPT_NON_QUERY)
     <AS>
     alias = SimpleIdentifier() {
         list.add(SqlStdOperatorTable.AS.createCall(Span.of(e).end(this), e, alias));
@@ -7503,7 +7498,7 @@ SqlCall MatchRecognizeCallWithModifier() :
     (
         <RUNNING> { runningOp = SqlStdOperatorTable.RUNNING; }
     |
-        <FINAL> { runningOp = SqlStdOperatorTable.FINAL; }
+        [ <FINAL> ] { runningOp = SqlStdOperatorTable.FINAL; }
     )
     { s = span(); }
     func = NamedFunctionCall() {
