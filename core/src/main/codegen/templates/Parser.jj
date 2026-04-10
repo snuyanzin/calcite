@@ -3378,7 +3378,12 @@ void AddMeasureColumn(List<SqlNode> list) :
     final SqlIdentifier alias;
 }
 {
-    e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    (
+      e = MatchRecognizeFunctionCall()
+      |
+      [ <FINAL> ]
+      e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    )
     <AS>
     alias = SimpleIdentifier() {
         list.add(SqlStdOperatorTable.AS.createCall(Span.of(e).end(this), e, alias));
