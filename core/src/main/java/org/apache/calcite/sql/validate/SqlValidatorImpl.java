@@ -2546,7 +2546,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (alias == null) {
           alias = SqlValidatorUtil.alias(node, nextGeneratedId++);
         }
-        if (config.identifierExpansion()) {
+        if (config.identifierExpansion() && !(usingScope instanceof MatchRecognizeScope)) {
           newNode = SqlValidatorUtil.addAlias(node, alias);
         }
         break;
