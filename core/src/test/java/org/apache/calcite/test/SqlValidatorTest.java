@@ -2497,7 +2497,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "PATTERN (`A` `B`)\n"
             + "DEFINE `A` AS (PREV(`A`.`EMPNO`, 0) = 123 AS `A`)) AS `T`");
 
-    // Identifier for table before MATCH_RECOGNIZE should not be expanded
+    // Expansion of identifier for table before MATCH_RECOGNIZE
     sql("SELECT *\n"
         + "FROM sales.emp\n"
         + "MATCH_RECOGNIZE (\n"
@@ -2509,10 +2509,45 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + ") AS T")
         .withValidatorConfig(c -> c.withIdentifierExpansion(true))
         .rewritesTo("SELECT `T`.`DEPTNO`\n"
-            + "FROM `CATALOG`.`SALES`.`EMP` MATCH_RECOGNIZE(\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP` MATCH_RECOGNIZE(\n"
             + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
             + "PATTERN (`A` `B`)\n"
             + "DEFINE `A` AS (PREV(`A`.`EMPNO`, 0) = 123 AS `A`)) AS `T`");
+
+    // Identifier with alias for table before MATCH_RECOGNIZE should pass parser
+    sql("SELECT *\n"
+        + "FROM sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T")
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo("SELECT `T`.`DEPTNO`\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+            + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+            + "PATTERN (`A` `B`)\n"
+            + "DEFINE `A` AS (PREV(`A`.`EMPNO`, 0) = 123 AS `A`)) AS `T`");
+
+    // Identifier with alias for table before MATCH_RECOGNIZE should pass parser
+    sql("SELECT emp.empno, T.*\n"
+        + "FROM emp JOIN sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T on emp.deptno = T.deptno")
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo("SELECT `EMP`.`EMPNO`, `T`.`DEPTNO`\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`\n"
+            + "INNER JOIN `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+            + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+            + "PATTERN (`A` `B`)\n"
+            + "DEFINE `A` AS (PREV(`A`.`EMPNO`, 0) = 123 AS `A`)) AS `T` ON CAST(`EMP`.`DEPTNO` AS BIGINT) = `T`.`DEPTNO`");
   }
 
   @Test void testIntervalTimeUnitEnumeration() {
