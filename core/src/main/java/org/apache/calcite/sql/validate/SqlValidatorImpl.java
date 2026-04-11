@@ -6277,22 +6277,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // parse PARTITION BY column
     for (SqlNode node : matchRecognize.getPartitionList()) {
-      SqlIdentifier identifier = (SqlIdentifier) node;
-      identifier.validate(this, scope);
-      RelDataType type = deriveType(scope, identifier);
+
+      SqlNode expand = expand(node, scope);
+      setOriginal(expand, node);
+
+      expand.validate(this, scope);
+      RelDataType type = deriveType(scope, expand);
+      SqlIdentifier identifier = (SqlIdentifier) expand;
       String name = identifier.names.get(1);
       typeBuilder.add(name, type);
     }
 
     // parse ORDER BY column
     for (SqlNode node : matchRecognize.getOrderList()) {
-      node.validate(this, scope);
+      SqlNode expand = expand(node, scope);
+      setOriginal(expand, node);
+
+      expand.validate(this, scope);
       SqlIdentifier identifier;
-      if (node instanceof SqlBasicCall) {
-        identifier = ((SqlBasicCall) node).operand(0);
+      if (expand instanceof SqlBasicCall) {
+        identifier = ((SqlBasicCall) expand).operand(0);
       } else {
         identifier =
-            requireNonNull((SqlIdentifier) node,
+            requireNonNull((SqlIdentifier) expand,
                 () -> "order by field is null. All fields: "
                     + matchRecognize.getOrderList());
       }
