@@ -31,8 +31,8 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 11, 17 or 19)
-and Gradle (version 8.7) on your path.
+Prerequisite is Java (JDK 8, 11, 17, 21 or 23)
+and Gradle (version 8.14.4) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,

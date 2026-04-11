@@ -155,7 +155,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
 
   /** Cassandra resource. */
   private static class CassandraResource
-      implements ExtensionContext.Store.CloseableResource {
+      implements AutoCloseable {
     private final CqlSession session;
 
     private CassandraResource() {
