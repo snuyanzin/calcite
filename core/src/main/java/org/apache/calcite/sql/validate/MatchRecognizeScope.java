@@ -18,6 +18,8 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 
@@ -70,7 +72,16 @@ public class MatchRecognizeScope extends ListScope {
     for (ScopeChild child : children) {
       final RelDataType rowType = child.namespace.getRowType();
       if (nameMatcher.field(rowType, columnName) != null) {
-        map.put(STAR, child);
+        SqlNode tableRef = matchRecognize.getTableRef();
+        String tableName;
+        if (tableRef instanceof SqlBasicCall) {
+          tableName = ((SqlBasicCall) tableRef).getOperandList().get(1).toString();
+        } else if (tableRef instanceof SqlIdentifier) {
+          tableName = tableRef.toString();
+        } else {
+          tableName = STAR;
+        }
+        map.put(tableName, child);
       }
     }
     switch (map.size()) {

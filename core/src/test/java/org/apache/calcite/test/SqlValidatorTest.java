@@ -2503,6 +2503,57 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql(simpleMatchRecognizeExpected)
         .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    final String sql6 = "SELECT *\n"
+        + "FROM sales.emp AS emp_alias\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  PARTITION BY empno\n"
+        + "  ORDER BY deptno\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+    final String expected6 = "SELECT `T`.`EMPNO`, `T`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP_ALIAS` MATCH_RECOGNIZE(\n"
+        + "PARTITION BY `EMP_ALIAS`.`EMPNO`\n"
+        + "ORDER BY `EMP_ALIAS`.`DEPTNO`\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql6)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected6);
+    sql(expected6)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
+
+    final String sql7 = "SELECT *\n"
+        + "FROM (SELECT empno, deptno from sales.emp)\n"
+        + "MATCH_RECOGNIZE (\n"
+        + "  PARTITION BY empno\n"
+        + "  ORDER BY deptno\n"
+        + "  MEASURES\n"
+        + "     FINAL COUNT(A.deptno) AS deptno\n"
+        + "  PATTERN (A B)\n"
+        + "  DEFINE\n"
+        + "    A AS A.empno = 123\n"
+        + ") AS T";
+    final String expected7 = "SELECT `T`.`EMPNO`, `T`.`DEPTNO`\n"
+        + "FROM (SELECT `EMP`.`EMPNO`, `EMP`.`DEPTNO`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) AS `EXPR$0` MATCH_RECOGNIZE(\n"
+        + "PARTITION BY `EXPR$0`.`EMPNO`\n"
+        + "ORDER BY `EXPR$0`.`DEPTNO`\n"
+        + "MEASURES FINAL COUNT(`A`.`DEPTNO`) AS `DEPTNO`\n"
+        + "PATTERN (`A` `B`)\n"
+        + "DEFINE `A` AS PREV(`A`.`EMPNO`, 0) = 123) AS `T`";
+
+    sql(sql7)
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .rewritesTo(expected7);
+    sql(expected7)
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
   @Test void testIntervalTimeUnitEnumeration() {
