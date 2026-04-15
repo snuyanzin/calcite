@@ -4179,8 +4179,8 @@ public class RexImpTable {
         // Alpha != "*" so we have to search for a specific one to find and use that, if found
         // otherwise pick the last one
         setInputGetterIndex(translator,
-            Expressions.call(BuiltInMethod.MATCH_UTILS_LAST_WITH_SYMBOL_OR_DEFAULT.method,
-                Expressions.constant(alpha), rows, symbols, i, i));
+            Expressions.call(BuiltInMethod.MATCH_UTILS_LAST_WITH_SYMBOL_OR_LAST.method,
+                Expressions.constant(alpha), symbols, i));
       }
 
       // Important, unbox the node / expression to avoid NullAs.NOT_POSSIBLE
