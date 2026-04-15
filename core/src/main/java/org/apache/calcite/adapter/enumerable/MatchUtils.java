@@ -27,21 +27,22 @@ public class MatchUtils {
   }
 
   /**
-   * Returns the row with the highest index whose corresponding symbol matches, null otherwise.
+   * Returns the row with the highest index whose corresponding symbol matches,
+   * row with defaultIndex otherwise.
    *
    * @param symbol Target Symbol
    * @param rows List of passed rows
    * @param symbols Corresponding symbols to rows
-   * @return index or -1
+   * @return index or defaultIndex
    */
-  public static <E> int lastWithSymbol(String symbol, List<E> rows, List<String> symbols,
-      int startIndex) {
+  public static <E> int lastWithSymbolOrDefault(String symbol, List<E> rows, List<String> symbols,
+      int startIndex, int defaultIndex) {
     for (int i = startIndex; i >= 0; i--) {
       if (symbol.equals(symbols.get(i))) {
         return i;
       }
     }
-    return -1;
+    return defaultIndex;
   }
 
   public static void print(int s) {
