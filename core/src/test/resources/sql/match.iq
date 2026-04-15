@@ -141,6 +141,7 @@ C    EMPID
 !ok
 
 # Test Simple LAST with expanded column name
+# Test case for CALCITE-7474
 select *
 from "hr"."emps" match_recognize (
     order by "empid" desc
