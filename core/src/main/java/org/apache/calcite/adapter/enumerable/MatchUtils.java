@@ -41,7 +41,7 @@ public class MatchUtils {
         return i;
       }
     }
-    return -1;
+    return startIndex;
   }
 
   /**

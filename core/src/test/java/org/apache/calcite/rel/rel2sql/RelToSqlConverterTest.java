@@ -7354,7 +7354,7 @@ class RelToSqlConverterTest {
         + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
         + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
-  }
+    }
 
   @Test void testMatchRecognizeMeasures5() {
     final String sql = "select *\n"

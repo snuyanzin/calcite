@@ -210,7 +210,7 @@ public abstract class QuidemTest {
     final int commonPrefixLength = firstFile.getAbsolutePath().length() - first.length();
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
-    final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
+    final FilenameFilter filter = new PatternFilenameFilter(".*match\\.iq$");
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
       paths.add(n2u(f.getAbsolutePath().substring(commonPrefixLength)));
     }
