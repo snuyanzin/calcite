@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     `embedded-kotlin`
     `kotlin-dsl` apply false
-    id("com.github.autostyle")
+    id("com.github.autostyle") apply false
     id("com.github.vlsi.gradle-extensions")
 }
 
@@ -30,7 +30,7 @@ repositories {
     gradlePluginPortal()
 }
 
-val skipAutostyle by props()
+val skipAutostyle = props.bool("skipAutostyle") || JavaVersion.current() >= JavaVersion.VERSION_24
 
 allprojects {
     repositories {
@@ -62,13 +62,14 @@ fun Project.applyKotlinProjectConventions() {
     }
 
     tasks.withType<KotlinCompile>().configureEach {
-        kotlinOptions {
-            jvmTarget = "1.8"
+        compilerOptions {
+            jvmTarget.set(
+                    org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
         }
     }
     if (!skipAutostyle) {
         apply(plugin = "com.github.autostyle")
-        autostyle {
+        configure<com.github.autostyle.gradle.AutostyleExtension> {
             kotlin {
                 ktlint()
                 trimTrailingWhitespace()

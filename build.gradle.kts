@@ -41,7 +41,7 @@ plugins {
     jacoco
     id("jacoco-report-aggregation")
     id("org.checkerframework") apply false
-    id("com.github.autostyle")
+    id("com.github.autostyle") apply false
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
@@ -82,7 +82,7 @@ val enableDependencyAnalysis by props()
 val enableJacoco by props()
 val skipJandex by props()
 val skipCheckstyle by props()
-val skipAutostyle by props()
+val skipAutostyle = props.bool("skipAutostyle") || JavaVersion.current() >= JavaVersion.VERSION_24
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
@@ -434,7 +434,7 @@ allprojects {
 
     if (!skipAutostyle) {
         apply(plugin = "com.github.autostyle")
-        autostyle {
+        configure<com.github.autostyle.gradle.AutostyleExtension> {
             kotlinGradle {
                 license()
                 ktlint()
@@ -473,7 +473,7 @@ allprojects {
             }
         }
         plugins.withId("org.jetbrains.kotlin.jvm") {
-            autostyle {
+            configure<com.github.autostyle.gradle.AutostyleExtension> {
                 kotlin {
                     licenseHeader(rootProject.ide.licenseHeader)
                     ktlint {
@@ -615,7 +615,7 @@ allprojects {
         }
 
         if (!skipAutostyle) {
-            autostyle {
+            configure<com.github.autostyle.gradle.AutostyleExtension> {
                 java {
                     filter.exclude(*javaccGeneratedPatterns +
                             "**/test/java/*.java" +
@@ -895,17 +895,6 @@ allprojects {
                     showStandardStreams = true
                 }
                 exclude("**/*Suite*")
-                if (JavaVersion.current() >= JavaVersion.VERSION_23) {
-                    // Subject.doAs is deprecated and does not work in JDK 23
-                    // and higher unless the (also deprecated) SecurityManager
-                    // is enabled. However, we depend on libraries Avatica and
-                    // Hadoop for our remote driver and Pig and Spark
-                    // adapters. So as a workaround we require enabling the
-                    // security manager on JDK 23 and higher. See
-                    // [CALCITE-6587], [CALCITE-6590] (Avatica), [HADOOP-19212],
-                    // https://openjdk.org/jeps/411.
-                    jvmArgs("-Djava.security.manager=allow")
-                }
                 jvmArgs("-Xmx1536m")
                 jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
                 // Pass the property to tests
