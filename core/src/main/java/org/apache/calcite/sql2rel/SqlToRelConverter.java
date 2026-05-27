@@ -1732,11 +1732,9 @@ public class SqlToRelConverter {
         comparisonOp = SqlStdOperatorTable.EQUALS;
       }
       if (leftKeys.size() == 1) {
-        rexComparison =
-            rexBuilder.makeCall(comparisonOp,
-                leftKeys.get(0),
-                ensureSqlType(leftKeys.get(0).getType(),
-                    bb.convertExpression(rightVals)));
+        SqlCall sqlCall =
+            comparisonOp.createCall(rightVals.getParserPosition(), leftKeys.get(0), rightVals);
+        rexComparison = ensureComparisonTypes(bb.convertExpression(sqlCall));
       } else {
         assert rightVals instanceof SqlCall;
         final SqlBasicCall call = (SqlBasicCall) rightVals;
@@ -1744,12 +1742,12 @@ public class SqlToRelConverter {
             && call.operandCount() == leftKeys.size();
         rexComparison =
             RexUtil.composeConjunction(rexBuilder,
-                Util.transform(
-                    Pair.zip(leftKeys, call.getOperandList()),
-                    pair -> rexBuilder.makeCall(comparisonOp, pair.left,
-                        // TODO: remove requireNonNull when checkerframework issue resolved
-                        ensureSqlType(requireNonNull(pair.left, "pair.left").getType(),
-                            bb.convertExpression(pair.right)))));
+                transform(
+                  Pair.zip(leftKeys, call.getOperandList()),
+                  pair -> ensureComparisonTypes(
+                      bb.convertExpression(
+                          comparisonOp.createCall(rightVals.getParserPosition(),
+                              pair.left, pair.right)))));
       }
       comparisons.add(rexComparison);
     }
@@ -1768,14 +1766,64 @@ public class SqlToRelConverter {
     }
   }
 
-  /** Ensures that an expression has a given {@link SqlTypeName}, applying a
-   * cast if necessary. If the expression already has the right type family,
-   * returns the expression unchanged. */
-  private RexNode ensureSqlType(RelDataType type, RexNode node) {
-    if (type.getSqlTypeName() == node.getType().getSqlTypeName()
-        || (type.getSqlTypeName() == SqlTypeName.VARCHAR
-            && node.getType().getSqlTypeName() == SqlTypeName.CHAR)) {
+  /**
+   * Ensures that a comparison expression has matching operand types. If the
+   * operands have different type names, casts the right operand to match the
+   * left operand's type. This handles the case where type coercion is disabled
+   * and the IN-to-OR expansion produces comparisons with mismatched types
+   * (e.g., DATE = CHAR).
+   */
+  private RexNode ensureComparisonTypes(RexNode node) {
+    if (validator != null && validator.config().typeCoercionEnabled()) {
       return node;
+    }
+    if (node instanceof RexCall) {
+      final RexCall call = (RexCall) node;
+      if (call.operands.size() == 2) {
+        final RexNode left = call.operands.get(0);
+        final RexNode right = call.operands.get(1);
+        if (left.getType().getSqlTypeName() != right.getType().getSqlTypeName()) {
+          final RexNode castRight = rexBuilder.ensureType(left.getType(), right, true);
+          return rexBuilder.makeCall(call.getOperator(), left, castRight);
+        }
+      }
+    }
+    return node;
+  }
+
+  /**
+   * Converts a {@link SqlNodeList} (for example an IN-list or VALUES list)
+   * into a relational expression and produces a Rex-level sub-query that
+   * references that relational expression.
+   *
+   * <p>For example, converts:
+   * <pre>{@code
+   *   select * from "scott".emp where sal > some (4000, 2000)
+   * }</pre>
+   * to:
+   * <pre>{@code
+   *   select * from "scott".emp where sal > some (VALUES (4000), (2000))
+   * }</pre>
+   * The SqlNodeList becomes a RexSubQuery then optimized by SubQueryRemoveRule.
+   *
+   * @param bb              Blackboard containing the context
+   * @param subQuery        The SubQuery to populate with the converted expression
+   * @param query           The query node (expected to be a SqlNodeList)
+   * @param leftSqlKeys     Left-hand key expressions for IN/SOME/ALL
+   * @param targetRowType   The target row type for the conversion
+   * @param call            The original SQL call
+   */
+  private void convertNodeListToSubQuery(
+      Blackboard bb,
+      SubQuery subQuery,
+      SqlNode query,
+      List<SqlNode> leftSqlKeys,
+      RelDataType targetRowType,
+      SqlCall call) {
+    RelNode relNode = convertRowValues(bb, query, (SqlNodeList) query, false, targetRowType);
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    for (SqlNode node : leftSqlKeys) {
+      builder.add(bb.convertExpression(node));
     }
     return rexBuilder.ensureType(type, node, true);
   }
