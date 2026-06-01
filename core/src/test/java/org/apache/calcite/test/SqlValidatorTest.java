@@ -2008,23 +2008,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String emp = "(SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, "
         + "`EMP`.`HIREDATE`, `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `EMP`.`SLACKER`\n"
         + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) PARTITION BY `DEPTNO`";
-    final String rewritten = "SELECT `EXPR$0`.`SKU`\n"
-        + "FROM TABLE(MULTI_STREAM_JOIN_PROCESSOR("
-        + emp + ", " + emp + ", " + emp + ", " + emp + ")) AS `EXPR$0`";
-    sql("select * from table(Multi_Stream_Join_Processor(\n"
-        + "  table emp partition by deptno,\n"
-        + "  table emp partition by deptno,\n"
+    final String rewritten = "SELECT `EXPR$0`.`VAL`\n"
+        + "FROM TABLE(SIMILARLITY("
+        + emp + ", " + emp + ")) AS `EXPR$0`";
+    sql("select * from table(SIMILARLITY(\n"
         + "  table emp partition by deptno,\n"
         + "  table emp partition by deptno))")
         .withValidatorIdentifierExpansion(true)
         .rewritesTo(rewritten);
 
-    // The rewritten SQL round-trips: every "(SELECT ...) PARTITION BY ..." table
-    // argument re-parses, not only the first one.
-    final org.apache.calcite.sql.parser.SqlParser.Config cfg =
-        org.apache.calcite.sql.parser.SqlParser.config()
-            .withQuoting(org.apache.calcite.avatica.util.Quoting.BACK_TICK);
-    org.apache.calcite.sql.parser.SqlParser.create(rewritten, cfg).parseStmt();
+    sql(rewritten).withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK)).ok();
   }
 
   @Test void testUnknownFunctionHandling() {
