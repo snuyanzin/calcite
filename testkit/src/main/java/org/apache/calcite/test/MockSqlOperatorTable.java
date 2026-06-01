@@ -103,6 +103,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
                 new ScoreTableFunction(),
                 new TopNTableFunction(),
                 new SimilarlityTableFunction(),
+                new MultiStreamJoinProcessorTableFunction(),
                 new InvalidTableFunction(),
                 new CompareStringsOrNumericValues(),
                 HIGHER_ORDER_FUNCTION,
@@ -468,6 +469,72 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return "SIMILARITY(TABLE table_name, TABLE table_name)";
+      }
+    }
+  }
+
+  /** "MultiStreamJoinProcessor" user-defined table function. It joins four
+   * input tables, all with set semantics, partitioned on a common key. */
+  public static class MultiStreamJoinProcessorTableFunction extends SqlFunction
+      implements SqlTableFunction {
+
+    private final Map<Integer, TableCharacteristic> tableParams =
+        ImmutableMap.of(
+            0, TableCharacteristic.builder(TableCharacteristic.Semantics.SET).build(),
+            1, TableCharacteristic.builder(TableCharacteristic.Semantics.SET).build(),
+            2, TableCharacteristic.builder(TableCharacteristic.Semantics.SET).build(),
+            3, TableCharacteristic.builder(TableCharacteristic.Semantics.SET).build());
+
+    public MultiStreamJoinProcessorTableFunction() {
+      super("MULTI_STREAM_JOIN_PROCESSOR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CURSOR,
+          null,
+          new OperandMetadataImpl(),
+          SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return opBinding -> opBinding.getTypeFactory().builder()
+          .add("SKU", SqlTypeName.VARCHAR)
+          .build();
+    }
+
+    @Override public TableCharacteristic tableCharacteristic(int ordinal) {
+      return tableParams.get(ordinal);
+    }
+
+    @Override public boolean argumentMustBeScalar(int ordinal) {
+      return !tableParams.containsKey(ordinal);
+    }
+
+    /** Operand type checker for
+     * {@link MultiStreamJoinProcessorTableFunction}. */
+    private static class OperandMetadataImpl implements SqlOperandMetadata {
+
+      @Override public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        return ImmutableList.of(
+            typeFactory.createSqlType(SqlTypeName.ANY),
+            typeFactory.createSqlType(SqlTypeName.ANY),
+            typeFactory.createSqlType(SqlTypeName.ANY),
+            typeFactory.createSqlType(SqlTypeName.ANY));
+      }
+
+      @Override public List<String> paramNames() {
+        return ImmutableList.of("OFFERS", "BOOSTS", "SPONSORED", "EVENTS");
+      }
+
+      @Override public boolean checkOperandTypes(
+          SqlCallBinding callBinding, boolean throwOnFailure) {
+        return true;
+      }
+
+      @Override public SqlOperandCountRange getOperandCountRange() {
+        return SqlOperandCountRanges.of(4);
+      }
+
+      @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return "MultiStreamJoinProcessor(TABLE, TABLE, TABLE, TABLE)";
       }
     }
   }

@@ -1999,6 +1999,34 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  /** Tests a multi-input set-semantics table function
+   * ({@code MultiStreamJoinProcessor}) whose four arguments are all
+   * {@code TABLE t PARTITION BY ...}. Validation expands every table argument
+   * into a parenthesized sub-query, and the rewritten SQL round-trips (every
+   * argument, not only the first, may be a {@code (SELECT ...) PARTITION BY}). */
+  @Test void testMultiStreamJoinProcessorRewrite() throws Exception {
+    final String emp = "(SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, "
+        + "`EMP`.`HIREDATE`, `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `EMP`.`SLACKER`\n"
+        + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) PARTITION BY `DEPTNO`";
+    final String rewritten = "SELECT `EXPR$0`.`SKU`\n"
+        + "FROM TABLE(MULTI_STREAM_JOIN_PROCESSOR("
+        + emp + ", " + emp + ", " + emp + ", " + emp + ")) AS `EXPR$0`";
+    sql("select * from table(Multi_Stream_Join_Processor(\n"
+        + "  table emp partition by deptno,\n"
+        + "  table emp partition by deptno,\n"
+        + "  table emp partition by deptno,\n"
+        + "  table emp partition by deptno))")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo(rewritten);
+
+    // The rewritten SQL round-trips: every "(SELECT ...) PARTITION BY ..." table
+    // argument re-parses, not only the first one.
+    final org.apache.calcite.sql.parser.SqlParser.Config cfg =
+        org.apache.calcite.sql.parser.SqlParser.config()
+            .withQuoting(org.apache.calcite.avatica.util.Quoting.BACK_TICK);
+    org.apache.calcite.sql.parser.SqlParser.create(rewritten, cfg).parseStmt();
+  }
+
   @Test void testUnknownFunctionHandling() {
     final SqlValidatorFixture s = fixture().withLenientOperatorLookup(true);
     s.withExpr("concat('a', 2)").ok();
