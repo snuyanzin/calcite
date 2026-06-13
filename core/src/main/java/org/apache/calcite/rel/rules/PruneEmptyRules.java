@@ -40,6 +40,7 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
@@ -133,6 +134,40 @@ public abstract class PruneEmptyRules {
    */
   public static final RelOptRule INTERSECT_INSTANCE =
       IntersectEmptyPruneRuleConfig.DEFAULT.toRule();
+
+  /** Returns whether any input of a set operator is definitely empty. */
+  private static boolean hasEmptyInput(RelNode setOp, RelMetadataQuery mq) {
+    for (RelNode input : setOp.getInputs()) {
+      if (isEmpty(input, mq)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether {@code node} is known to produce no rows.
+   *
+   * <p>Combines two sources of information:
+   *
+   * <ul>
+   * <li>row-count metadata ({@link RelMdUtil#isRelDefinitelyEmpty}), which sees
+   * through row-count-preserving operators such as
+   * {@link org.apache.calcite.rel.core.Project} and
+   * {@link org.apache.calcite.rel.core.Filter} (e.g. a {@code Project} that
+   * {@code REDUCE_EXPRESSIONS} leaves over an empty or single-row
+   * {@link Values} once predicates are inferred from it, see
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6044">[CALCITE-6044]</a>);
+   * <li>structural inspection, which recognizes an empty {@link Values}
+   * directly and unwraps {@code HepRelVertex} and {@code RelSubset} (a subset
+   * is empty if any equivalent member is empty &mdash; something that
+   * {@link org.apache.calcite.rel.metadata.RelMdMaxRowCount} does not currently
+   * detect, see CALCITE-1048).
+   * </ul>
+   */
+  private static boolean isEmpty(RelNode node, RelMetadataQuery mq) {
+    return RelMdUtil.isRelDefinitelyEmpty(mq, node) || isEmpty(node);
+  }
 
   private static boolean isEmpty(RelNode node) {
     if (node instanceof Values) {
@@ -411,13 +446,18 @@ public abstract class PruneEmptyRules {
 
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
+        @Override public boolean matches(RelOptRuleCall call) {
+          return hasEmptyInput(call.rel(0), call.getMetadataQuery());
+        }
+
         @Override public void onMatch(RelOptRuleCall call) {
           final Union union = call.rel(0);
+          final RelMetadataQuery mq = call.getMetadataQuery();
           final List<RelNode> inputs = requireNonNull(union.getInputs());
           final RelBuilder relBuilder = call.builder();
           int nonEmptyInputs = 0;
           for (RelNode input : inputs) {
-            if (!isEmpty(input)) {
+            if (!isEmpty(input, mq)) {
               relBuilder.push(input);
               nonEmptyInputs++;
             }
@@ -451,13 +491,18 @@ public abstract class PruneEmptyRules {
 
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
+        @Override public boolean matches(RelOptRuleCall call) {
+          return hasEmptyInput(call.rel(0), call.getMetadataQuery());
+        }
+
         @Override public void onMatch(RelOptRuleCall call) {
           final Minus minus = call.rel(0);
+          final RelMetadataQuery mq = call.getMetadataQuery();
           final List<RelNode> inputs = requireNonNull(minus.getInputs());
           int nonEmptyInputs = 0;
           final RelBuilder relBuilder = call.builder();
           for (RelNode input : inputs) {
-            if (!isEmpty(input)) {
+            if (!isEmpty(input, mq)) {
               relBuilder.push(input);
               nonEmptyInputs++;
             } else if (nonEmptyInputs == 0) {
@@ -498,6 +543,10 @@ public abstract class PruneEmptyRules {
 
     @Override default PruneEmptyRule toRule() {
       return new PruneEmptyRule(this) {
+        @Override public boolean matches(RelOptRuleCall call) {
+          return hasEmptyInput(call.rel(0), call.getMetadataQuery());
+        }
+
         @Override public void onMatch(RelOptRuleCall call) {
           Intersect intersect = call.rel(0);
           final RelBuilder relBuilder = call.builder();

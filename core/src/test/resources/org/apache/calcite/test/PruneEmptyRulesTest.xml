@@ -1,0 +1,101 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<Root>
+  <TestCase name="testEmptyIntersectThroughProject">
+    <Resource name="sql">
+      <![CDATA[select * from (values (30, 3))
+intersect
+select * from (values (10, 1), (30, 3)) as t (x, y) where x > 50
+intersect
+select * from (values (30, 3))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+      LogicalValues(tuples=[[{ 30, 3 }]])
+    LogicalProject(X=[$0], Y=[$1])
+      LogicalFilter(condition=[>($0, 50)])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
+  LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+    LogicalValues(tuples=[[{ 30, 3 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEmptyMinusThroughProject">
+    <Resource name="sql">
+      <![CDATA[select * from (values (30, 3)) as t (x, y)
+where x > 30
+except
+select * from (values (20, 2))
+except
+select * from (values (40, 4))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalMinus(all=[false])
+    LogicalProject(X=[$0], Y=[$1])
+      LogicalFilter(condition=[>($0, 30)])
+        LogicalValues(tuples=[[{ 30, 3 }]])
+    LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+      LogicalValues(tuples=[[{ 20, 2 }]])
+  LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+    LogicalValues(tuples=[[{ 40, 4 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEmptyUnionThroughProject">
+    <Resource name="sql">
+      <![CDATA[select * from (
+select * from (values (10, 1), (30, 3)) as t (x, y)
+union all
+select * from (values (20, 2))
+)
+where x + y > 30]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[>(+($0, $1), 30)])
+    LogicalUnion(all=[true])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 20, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(X=[$0], Y=[$1])
+  LogicalValues(tuples=[[{ 30, 3 }]])
+]]>
+    </Resource>
+  </TestCase>
+</Root>
