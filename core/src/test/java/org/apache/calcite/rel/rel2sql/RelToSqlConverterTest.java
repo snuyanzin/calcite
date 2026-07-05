@@ -4512,6 +4512,69 @@ class RelToSqlConverterTest {
     sql(query8).optimize(rules, hepPlanner).ok(expected8);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7644">[CALCITE-7644]
+   *  Window's ORDER BY expression is unparsed as positional ordinal</a>. */
+  @Test void testWindowOrderByExpression() {
+    // A window ORDER BY expression must not be unparsed as a positional ordinal.
+    final String query = "SELECT \"employee_id\", \"salary\", \"hire_date\", "
+        + "SUM(\"salary\") OVER ("
+        + "PARTITION BY \"employee_id\" "
+        + "ORDER BY CASE WHEN \"salary\" > 1000 THEN 1 ELSE 0 END "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"sum_val\"\n"
+        + "FROM \"employee\"";
+    final String expected = "SELECT \"employee_id\", \"salary\", \"hire_date\", "
+        + "SUM(\"salary\") OVER (PARTITION BY \"employee_id\" "
+        + "ORDER BY CASE WHEN CAST(\"salary\" AS DECIMAL(14, 4)) > 1000.0000 "
+        + "THEN 1 ELSE 0 END "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"sum_val\"\n"
+        + "FROM \"foodmart\".\"employee\"";
+
+    final HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    final HepPlanner hepPlanner = new HepPlanner(builder.build());
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    sql(query).optimize(rules, hepPlanner).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6475">[CALCITE-6475]
+   * RelToSql converter fails when the IN-list contains NULL
+   * and it is converted to VALUES</a>. */
+  @Test void convertInListToValues1() {
+    String query = "select \"product_id\" from \"product\"\n"
+        + "where \"product_id\" in (12, null)";
+    String expected = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" IN (SELECT *\n"
+        + "FROM (VALUES (12),\n"
+        + "(NULL)) AS \"t\" (\"ROW_VALUE\"))";
+    sql(query).withConfig(c -> c.withInSubQueryThreshold(1)).ok(expected);
+  }
+
+  @Test void convertInListToValues2() {
+    String query = "select \"brand_name\" from \"product\"\n"
+        + "where cast(\"brand_name\" as char) in ('n', null)";
+    String expected = "SELECT \"brand_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE CAST(\"brand_name\" AS CHAR(1) CHARACTER SET \"ISO-8859-1\") IN (SELECT *\n"
+        + "FROM (VALUES ('n'),\n"
+        + "(NULL)) AS \"t\" (\"ROW_VALUE\"))";
+    sql(query).withConfig(c -> c.withInSubQueryThreshold(1)).ok(expected);
+  }
+
+  @Test void convertInListToValues3() {
+    String query = "select \"brand_name\" from \"product\"\n"
+        + "where (\"brand_name\" = \"product_name\") in (false, null)";
+    String expected = "SELECT \"brand_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE (\"brand_name\" = \"product_name\") IN (SELECT *\n"
+        + "FROM (VALUES (FALSE),\n"
+        + "(NULL)) AS \"t\" (\"ROW_VALUE\"))";
+    sql(query).withConfig(c -> c.withInSubQueryThreshold(1)).ok(expected);
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3866">[CALCITE-3866]
