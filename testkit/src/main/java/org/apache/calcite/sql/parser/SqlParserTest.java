@@ -4614,8 +4614,9 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders partition by (orderId, productid), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `ORDERID`, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) PARTITION BY (`ORDERID`, `PRODUCTID`), 3))";
     sql(sql).ok(expected);
+    sql(expected).withConfig(c -> c.withQuoting(Quoting.BACK_TICK)).same();
   }
 
   @Test void testTableFunctionWithOrderKey() {
@@ -4632,8 +4633,9 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by (orderId, productid), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY (`ORDERID`, `PRODUCTID`), 3))";
     sql(sql).ok(expected);
+    sql(expected).withConfig(c -> c.withQuoting(Quoting.BACK_TICK)).same();
   }
 
   @Test void testTableFunctionWithComplexOrderBy() {
@@ -4641,8 +4643,9 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by (orderId desc, productid asc), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID` DESC, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY (`ORDERID` DESC, `PRODUCTID`), 3))";
     sql(sql).ok(expected);
+    sql(expected).withConfig(c -> c.withQuoting(Quoting.BACK_TICK)).same();
   }
 
   @Test void testTableFunctionWithPartitionKeyAndOrderKey() {

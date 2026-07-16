@@ -65,17 +65,20 @@ public class SqlSetSemanticsTableOperator extends SqlInternalOperator {
     SqlNodeList partitionList = call.operand(1);
     if (partitionList.size() > 0) {
       writer.sep("PARTITION BY");
-      final SqlWriter.Frame partitionFrame = writer.startList("", "");
+      final SqlWriter.Frame partitionFrame = partitionList.size() == 1
+          ? writer.startList("", "")
+          : writer.startList("(", ")");
       partitionList.unparse(writer, 0, 0);
       writer.endList(partitionFrame);
     }
     SqlNodeList orderList = call.operand(2);
     if (orderList.size() > 0) {
       writer.sep("ORDER BY");
-      writer.list(
-          SqlWriter.FrameTypeEnum.ORDER_BY_LIST,
-          SqlWriter.COMMA,
-          orderList);
+      final SqlWriter.Frame orderFrame = orderList.size() == 1
+          ? writer.startList("", "")
+          : writer.startList("(", ")");
+      orderList.unparse(writer, 0, 0);
+      writer.endList(orderFrame);
     }
   }
 
