@@ -131,9 +131,16 @@ public class RelToSqlConverter extends SqlImplementor
   private final Deque<Frame> stack = new ArrayDeque<>();
 
   /** Creates a RelToSqlConverter. */
-  @SuppressWarnings("argument.type.incompatible")
   public RelToSqlConverter(SqlDialect dialect) {
-    super(dialect);
+    this(dialect, false);
+  }
+
+  /** Creates a RelToSqlConverter; if {@code preserveLiteralTypes}, literals
+   * whose type is not implied by their SQL text are wrapped in CASTs;
+   * see {@link SqlImplementor#toSql(RexProgram, RexLiteral, SqlDialect)}. */
+  @SuppressWarnings("argument.type.incompatible")
+  public RelToSqlConverter(SqlDialect dialect, boolean preserveLiteralTypes) {
+    super(dialect, preserveLiteralTypes);
     dispatcher =
         ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
             RelNode.class);
@@ -1021,6 +1028,27 @@ public class RelToSqlConverter extends SqlImplementor
     if (e.offset != null) {
       builder.setOffset(builder.context.toSql(null, e.offset));
     }
+  }
+
+  private SqlNode toSqlOffset(Sort sort, Context context) {
+    final RexNode offset = requireNonNull(sort.offset, "offset");
+    final @Nullable RexLiteral reduced =
+        RexUtil.reduceOffsetToLiteral(sort.getCluster(), offset);
+    return offsetFetchToSql(context, reduced == null ? offset : reduced);
+  }
+
+  private SqlNode toSqlFetch(Sort sort, Context context) {
+    final RexNode fetch = requireNonNull(sort.fetch, "fetch");
+    final @Nullable RexLiteral reduced =
+        RexUtil.reduceFetchToLiteral(sort.getCluster(), fetch);
+    return offsetFetchToSql(context, reduced == null ? fetch : reduced);
+  }
+
+  /** Converts an OFFSET or FETCH expression; these can never have a CAST. */
+  private SqlNode offsetFetchToSql(Context context, RexNode rex) {
+    return preserveLiteralTypes && rex instanceof RexLiteral
+        ? SqlImplementor.toSql(null, (RexLiteral) rex)
+        : context.toSql(null, rex);
   }
 
   public boolean hasTrickyRollup(Sort e, Aggregate aggregate) {

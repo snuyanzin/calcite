@@ -33,6 +33,8 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rules.AggregateGroupingSetsToUnionRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -43,6 +45,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -94,6 +100,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.TestAbortedException;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -120,7 +127,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RelToSqlConverterTest {
 
-  private Sql fixture() {
+  Sql fixture() {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, "?",
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
@@ -222,6 +229,19 @@ class RelToSqlConverterTest {
         .getSql();
   }
 
+  /** Converts a relational expression to SQL in a given dialect, wrapping
+   * literals whose type is not implied by their SQL text in CASTs. */
+  private static String toSqlPreservingLiteralTypes(RelNode root, SqlDialect dialect) {
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect, true);
+    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
+    return sqlNode.toSqlString(c ->
+        c.withDialect(dialect)
+            .withAlwaysUseParentheses(false)
+            .withSelectListItemsOnSeparateLines(false)
+            .withUpdateSetListNewline(false)
+            .withIndentation(0)).getSql();
+  }
+
   /**
    * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5988">[CALCITE-5988]</a>
    * SqlImplementor.toSql cannot emit VARBINARY literals.
@@ -240,6 +260,240 @@ class RelToSqlConverterTest {
     String query = "SELECT CAST(0.1E0 AS DOUBLE), CAST(0.1E0 AS REAL), CAST(0.1E0 AS DOUBLE)";
     String expected = "SELECT 1E-1, 1E-1, 1E-1";
     sql(query).withMysql().ok(expected);
+  }
+
+  /** Creates a relational expression that projects literals of many types. */
+  private static RelNode projectOfLiterals() {
+    final RelBuilder b = relBuilder();
+    final RelDataTypeFactory typeFactory = b.getTypeFactory();
+    final RexBuilder rexBuilder = b.getRexBuilder();
+    return b
+        .scan("EMP")
+        .project(
+            rexBuilder.makeLiteral(1,
+                typeFactory.createSqlType(SqlTypeName.TINYINT)),
+            rexBuilder.makeLiteral(1,
+                typeFactory.createSqlType(SqlTypeName.SMALLINT)),
+            rexBuilder.makeLiteral(1,
+                typeFactory.createSqlType(SqlTypeName.INTEGER)),
+            rexBuilder.makeLiteral(1,
+                typeFactory.createSqlType(SqlTypeName.BIGINT)),
+            rexBuilder.makeLiteral(new BigDecimal("1.50"),
+                typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 2)),
+            rexBuilder.makeLiteral(0.5,
+                typeFactory.createSqlType(SqlTypeName.REAL)),
+            rexBuilder.makeLiteral(0.5,
+                typeFactory.createSqlType(SqlTypeName.DOUBLE)),
+            // makeCast folds the cast into a literal with type VARCHAR(10)
+            rexBuilder.makeCast(
+                typeFactory.createSqlType(SqlTypeName.VARCHAR, 10),
+                rexBuilder.makeLiteral("abc")),
+            rexBuilder.makeLiteral("abc",
+                typeFactory.createSqlType(SqlTypeName.CHAR, 3)),
+            rexBuilder.makeNullLiteral(
+                typeFactory.createSqlType(SqlTypeName.INTEGER)),
+            b.literal(true))
+        .build();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5987">[CALCITE-5987]
+   * SqlImplementor loses type information for literals</a>.  */
+  @Test void testPreserveLiteralTypes() {
+    final RelNode root = projectOfLiterals();
+    final SqlDialect dialect = DatabaseProduct.CALCITE.getDialect();
+    // Without the option, every literal except the NULL loses its type;
+    // visit(Project) casts NULL literals regardless of the option
+    final String expected = "SELECT 1 AS \"$f0\", 1 AS \"$f1\", 1 AS \"$f2\","
+        + " 1 AS \"$f3\", 1.50 AS \"$f4\", 5E-1 AS \"$f5\", 5E-1 AS \"$f6\","
+        + " 'abc' AS \"$f7\", 'abc' AS \"$f8\", CAST(NULL AS INTEGER) AS \"$f9\","
+        + " TRUE AS \"$f10\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, dialect), isLinux(expected));
+    // With the option, literals whose SQL text parses to a different type
+    // use a cast
+    final String expectedPreserved = "SELECT"
+        + " CAST(1 AS TINYINT) AS \"$f0\","
+        + " CAST(1 AS SMALLINT) AS \"$f1\","
+        + " 1 AS \"$f2\","
+        + " CAST(1 AS BIGINT) AS \"$f3\","
+        + " CAST(1.50 AS DECIMAL(10, 2)) AS \"$f4\","
+        + " CAST(5E-1 AS REAL) AS \"$f5\","
+        + " 5E-1 AS \"$f6\","
+        + " CAST('abc' AS VARCHAR(10) CHARACTER SET \"ISO-8859-1\") AS \"$f7\","
+        + " 'abc' AS \"$f8\","
+        + " CAST(NULL AS INTEGER) AS \"$f9\","
+        + " TRUE AS \"$f10\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSqlPreservingLiteralTypes(root, dialect),
+        isLinux(expectedPreserved));
+  }
+
+  /** As {@link #testPreserveLiteralTypes()}, but for literals in a VALUES
+   * clause. */
+  @Test void testPreserveLiteralTypesValues() {
+    final RelBuilder b = relBuilder();
+    final RelDataTypeFactory typeFactory = b.getTypeFactory();
+    final RexBuilder rexBuilder = b.getRexBuilder();
+    final RelDataType tinyint = typeFactory.createSqlType(SqlTypeName.TINYINT);
+    final RelDataType varchar5 =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR, 5);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", tinyint)
+        .add("b", varchar5)
+        .build();
+    final RelNode root = b
+        .values(
+            ImmutableList.of(
+                ImmutableList.of(rexBuilder.makeLiteral(1, tinyint),
+                    (RexLiteral) rexBuilder.makeCast(varchar5,
+                        rexBuilder.makeLiteral("x"))),
+                ImmutableList.of(rexBuilder.makeLiteral(2, tinyint),
+                    (RexLiteral) rexBuilder.makeCast(varchar5,
+                        rexBuilder.makeLiteral("y")))),
+            rowType)
+        .build();
+    final SqlDialect dialect = DatabaseProduct.CALCITE.getDialect();
+    final String expectedPreserved = "SELECT *\n"
+        + "FROM (VALUES"
+        + " (CAST(1 AS TINYINT),"
+        + " CAST('x' AS VARCHAR(5) CHARACTER SET \"ISO-8859-1\")),\n"
+        + "(CAST(2 AS TINYINT),"
+        + " CAST('y' AS VARCHAR(5) CHARACTER SET \"ISO-8859-1\")))"
+        + " AS \"t\" (\"a\", \"b\")";
+    assertThat(toSqlPreservingLiteralTypes(root, dialect),
+        isLinux(expectedPreserved));
+  }
+
+  /** Parses a SQL query and converts it to a relational expression. */
+  private static RelNode sqlToRel(String sql, SchemaPlus defaultSchema,
+      SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
+      SqlToRelConverter.Config config, SqlDialect dialect,
+      SqlRexConvertletTable convertletTable) throws Exception {
+    final Planner planner =
+        getPlanner(null, parserConfig, defaultSchema, config, librarySet,
+            dialect.getTypeSystem(), convertletTable);
+    final SqlNode parse = planner.parse(sql);
+    final SqlNode validate = planner.validate(parse);
+    return planner.rel(validate).project();
+  }
+
+  /** As {@link #testPreserveLiteralTypes()}, but the type of a FETCH or
+   * OFFSET literal carries no information, so those literals are never
+   * cast, whatever their type. */
+  @Test void testPreserveLiteralTypesFetchOffset() {
+    final RelBuilder b = relBuilder();
+    final RelDataTypeFactory typeFactory = b.getTypeFactory();
+    final RexBuilder rexBuilder = b.getRexBuilder();
+    final RelDataType bigint = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelNode root =
+        LogicalSort.create(b.scan("EMP").build(), RelCollations.EMPTY,
+            rexBuilder.makeLiteral(2, bigint),
+            rexBuilder.makeLiteral(3, bigint));
+    final SqlDialect dialect = DatabaseProduct.CALCITE.getDialect();
+    final String expectedPreserved = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "OFFSET 2 ROWS\n"
+        + "FETCH NEXT 3 ROWS ONLY";
+    assertThat(toSqlPreservingLiteralTypes(root, dialect),
+        isLinux(expectedPreserved));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2152">[CALCITE-2152]
+   * SQL parser unable to parse SQL with nested joins produced by RelToSqlConverter</a>. */
+  @Test public void testNestedJoin() {
+    final String query = "select *\n"
+        + "from \"sales_fact_1997\"\n"
+        + "inner join (select * from \"customer\"\n"
+        + "inner join \"employee\" on (\"customer\".\"city\" = \"employee\".\"store_id\") ) AS \"customer_employee\"\n"
+        + "on (\"sales_fact_1997\".\"store_id\" = \"customer_employee\".\"city\")";
+    String expected = "SELECT \"sales_fact_1997\".\"product_id\", \"sales_fact_1997\".\"time_id\","
+        + " \"sales_fact_1997\".\"customer_id\", \"sales_fact_1997\".\"promotion_id\","
+        + " \"sales_fact_1997\".\"store_id\", \"sales_fact_1997\".\"store_sales\","
+        + " \"sales_fact_1997\".\"store_cost\", \"sales_fact_1997\".\"unit_sales\","
+        + " \"t0\".\"customer_id\" AS \"customer_id0\", \"t0\".\"account_num\", \"t0\".\"lname\","
+        + " \"t0\".\"fname\", \"t0\".\"mi\", \"t0\".\"address1\", \"t0\".\"address2\","
+        + " \"t0\".\"address3\", \"t0\".\"address4\", \"t0\".\"city\", \"t0\".\"state_province\","
+        + " \"t0\".\"postal_code\", \"t0\".\"country\", \"t0\".\"customer_region_id\","
+        + " \"t0\".\"phone1\", \"t0\".\"phone2\", \"t0\".\"birthdate\", \"t0\".\"marital_status\","
+        + " \"t0\".\"yearly_income\", \"t0\".\"gender\", \"t0\".\"total_children\","
+        + " \"t0\".\"num_children_at_home\", \"t0\".\"education\", \"t0\".\"date_accnt_opened\","
+        + " \"t0\".\"member_card\", \"t0\".\"occupation\", \"t0\".\"houseowner\","
+        + " \"t0\".\"num_cars_owned\", \"t0\".\"fullname\", \"t0\".\"employee_id\","
+        + " \"t0\".\"full_name\", \"t0\".\"first_name\", \"t0\".\"last_name\","
+        + " \"t0\".\"position_id\", \"t0\".\"position_title\", \"t0\".\"store_id\" AS \"store_id0\","
+        + " \"t0\".\"department_id\", \"t0\".\"birth_date\", \"t0\".\"hire_date\","
+        + " \"t0\".\"end_date\", \"t0\".\"salary\", \"t0\".\"supervisor_id\","
+        + " \"t0\".\"education_level\", \"t0\".\"marital_status0\", \"t0\".\"gender0\","
+        + " \"t0\".\"management_role\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "INNER JOIN (SELECT \"t\".\"customer_id\", \"t\".\"account_num\", \"t\".\"lname\","
+        + " \"t\".\"fname\", \"t\".\"mi\", \"t\".\"address1\", \"t\".\"address2\","
+        + " \"t\".\"address3\", \"t\".\"address4\", \"t\".\"city\", \"t\".\"state_province\","
+        + " \"t\".\"postal_code\", \"t\".\"country\", \"t\".\"customer_region_id\","
+        + " \"t\".\"phone1\", \"t\".\"phone2\", \"t\".\"birthdate\", \"t\".\"marital_status\","
+        + " \"t\".\"yearly_income\", \"t\".\"gender\", \"t\".\"total_children\","
+        + " \"t\".\"num_children_at_home\", \"t\".\"education\", \"t\".\"date_accnt_opened\","
+        + " \"t\".\"member_card\", \"t\".\"occupation\", \"t\".\"houseowner\","
+        + " \"t\".\"num_cars_owned\", \"t\".\"fullname\", \"employee\".\"employee_id\","
+        + " \"employee\".\"full_name\", \"employee\".\"first_name\", \"employee\".\"last_name\","
+        + " \"employee\".\"position_id\", \"employee\".\"position_title\", \"employee\".\"store_id\","
+        + " \"employee\".\"department_id\", \"employee\".\"birth_date\", \"employee\".\"hire_date\","
+        + " \"employee\".\"end_date\", \"employee\".\"salary\", \"employee\".\"supervisor_id\","
+        + " \"employee\".\"education_level\", \"employee\".\"marital_status\" AS \"marital_status0\","
+        + " \"employee\".\"gender\" AS \"gender0\", \"employee\".\"management_role\","
+        + " CAST(\"t\".\"city\" AS INTEGER) AS \"city0\"\n"
+        + "FROM (SELECT \"customer_id\","
+        + " \"account_num\", \"lname\", \"fname\", \"mi\", \"address1\", \"address2\","
+        + " \"address3\", \"address4\", \"city\", \"state_province\", \"postal_code\","
+        + " \"country\", \"customer_region_id\", \"phone1\", \"phone2\", \"birthdate\","
+        + " \"marital_status\", \"yearly_income\", \"gender\", \"total_children\","
+        + " \"num_children_at_home\", \"education\", \"date_accnt_opened\", \"member_card\","
+        + " \"occupation\", \"houseowner\", \"num_cars_owned\", \"fullname\","
+        + " CAST(\"city\" AS INTEGER) AS \"city0\"\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t\"\n"
+        + "INNER JOIN \"foodmart\".\"employee\" ON \"t\".\"city0\" = \"employee\".\"store_id\") AS \"t0\""
+        + " ON \"sales_fact_1997\".\"store_id\" = \"t0\".\"city0\"";
+    sql(query).ok(expected);
+  }
+
+  /**
+   * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-4723">[CALCITE-4723]</a>
+   * Check whether JDBC adapter generates "GROUP BY ()" against Oracle, DB2, MSSQL.
+   */
+  @Test void testGroupByNothing() {
+    String query = "select avg(\"salary\") from \"employee\" group by ()";
+    final String expected = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedDb2 = "SELECT AVG(employee.salary)\n"
+        + "FROM foodmart.employee AS employee";
+    final String expectedOracle = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedMssql = "SELECT AVG([salary])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .ok(expected)
+        .withDb2().ok(expectedDb2)
+        .withOracle().ok(expectedOracle)
+        .withMssql().ok(expectedMssql);
+  }
+
+  @Test void testAggregateWithoutGroupBy() {
+    String query = "select avg(\"salary\") from \"employee\"";
+    final String expected = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedDb2 = "SELECT AVG(employee.salary)\n"
+        + "FROM foodmart.employee AS employee";
+    final String expectedOracle = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedMssql = "SELECT AVG([salary])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .ok(expected)
+        .withDb2().ok(expectedDb2)
+        .withOracle().ok(expectedOracle)
+        .withMssql().ok(expectedMssql);
   }
 
   @Test void testGroupByBooleanLiteral() {
@@ -8250,12 +8504,29 @@ class RelToSqlConverterTest {
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
+    private final SqlRexConvertletTable convertletTable;
+    /** If true, {@link #exec()} additionally checks that Calcite-dialect
+     * output round-trips when literal types are preserved;
+     * see {@link #checkRoundTrip(RelNode, SchemaPlus)}. */
+    private final boolean roundTrip;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
         SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         @Nullable Function<RelBuilder, RelNode> relFn,
-        List<Function<RelNode, RelNode>> transforms) {
+        List<Function<RelNode, RelNode>> transforms,
+        SqlRexConvertletTable convertletTable) {
+      this(schemaSpec, sql, dialect, parserConfig, librarySet, config, relFn,
+          transforms, convertletTable, false);
+    }
+
+    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
+        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
+        UnaryOperator<SqlToRelConverter.Config> config,
+        @Nullable Function<RelBuilder, RelNode> relFn,
+        List<Function<RelNode, RelNode>> transforms,
+        SqlRexConvertletTable convertletTable,
+        boolean roundTrip) {
       this.schemaSpec = schemaSpec;
       this.sql = sql;
       this.dialect = dialect;
@@ -8264,21 +8535,23 @@ class RelToSqlConverterTest {
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
       this.config = config;
+      this.convertletTable = convertletTable;
+      this.roundTrip = roundTrip;
     }
 
     Sql withSql(String sql) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable, roundTrip);
     }
 
     Sql dialect(SqlDialect dialect) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable, roundTrip);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable, roundTrip);
     }
 
     Sql withCalcite() {
@@ -8442,12 +8715,12 @@ class RelToSqlConverterTest {
 
     Sql parserConfig(SqlParser.Config parserConfig) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable, roundTrip);
     }
 
     Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable, roundTrip);
     }
 
     final Sql withLibrary(SqlLibrary library) {
@@ -8456,7 +8729,7 @@ class RelToSqlConverterTest {
 
     Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
       return new Sql(schemaSpec, sql, dialect, parserConfig,
-          ImmutableSet.copyOf(librarySet), config, relFn, transforms);
+          ImmutableSet.copyOf(librarySet), config, relFn, transforms, convertletTable, roundTrip);
     }
 
     Sql optimize(final RuleSet ruleSet,
@@ -8473,7 +8746,20 @@ class RelToSqlConverterTest {
                 ImmutableList.of(), ImmutableList.of());
           });
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable, roundTrip);
+    }
+
+    Sql withConvertletTable(SqlRexConvertletTable convertletTable) {
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms, convertletTable, roundTrip);
+    }
+
+    /** Returns a copy of this Sql whose {@link #exec()} also checks the
+     * round trip of Calcite-dialect output;
+     * see {@link #checkRoundTrip(RelNode, SchemaPlus)}. */
+    Sql withRoundTrip() {
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet,
+          config, relFn, transforms, convertletTable, true);
     }
 
     Sql ok(String expectedQuery) {
@@ -8505,27 +8791,59 @@ class RelToSqlConverterTest {
           final RelBuilder relBuilder = RelBuilder.create(frameworkConfig);
           rel = relFn.apply(relBuilder);
         } else {
-          final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
-              .withTrimUnusedFields(false));
-          RelDataTypeSystem typeSystem = dialect.getTypeSystem();
-          final Planner planner =
-              getPlanner(null, parserConfig, defaultSchema, config, librarySet, typeSystem);
-          SqlNode parse = planner.parse(sql);
-          SqlNode validate = planner.validate(parse);
-          rel = planner.rel(validate).project();
+          rel =
+          sqlToRel(sql, defaultSchema, parserConfig, librarySet,
+            sqlToRelConverterConfig(), dialect, convertletTable);
         }
         for (Function<RelNode, RelNode> transform : transforms) {
           rel = transform.apply(rel);
         }
-        return toSql(rel, dialect);
+        final String result = toSql(rel, dialect);
+        if (roundTrip && dialect instanceof CalciteSqlDialect) {
+          checkRoundTrip(rel, defaultSchema);
+        }
+        return result;
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
     }
 
+    /** Checks the round trip Rel &rarr; SQL1 &rarr; Rel1 &rarr; SQL2 &rarr;
+     * Rel2 &rarr; SQL3, where every conversion preserves literal types:
+     * SQL3 must equal SQL2. */
+    private void checkRoundTrip(RelNode rel, SchemaPlus defaultSchema) {
+      final String sql1 = toSqlPreservingLiteralTypes(rel, dialect);
+      final RelNode rel1 = parseBack(sql1, defaultSchema);
+      final String sql2 = toSqlPreservingLiteralTypes(rel1, dialect);
+      final RelNode rel2 = parseBack(sql2, defaultSchema);
+      final String sql3 = toSqlPreservingLiteralTypes(rel2, dialect);
+      assertThat(sql3, is(sql2));
+    }
+
+    /** Parses SQL generated for the Calcite dialect and converts it back to
+     * a relational expression. Aborts the test if the SQL cannot be parsed
+     * or validated. */
+    private RelNode parseBack(String sql, SchemaPlus defaultSchema) {
+      try {
+        return sqlToRel(sql, defaultSchema, SqlParser.Config.DEFAULT,
+            librarySet, sqlToRelConverterConfig(), dialect, convertletTable);
+      } catch (Exception | AssertionError e) {
+        throw new TestAbortedException("cannot re-parse: " + sql, e);
+      }
+    }
+
+    /** Materializes the SQL-to-rel configuration for this test: the default
+     * configuration, with field trimming disabled so that the rel keeps the
+     * shape that the test expects, transformed by the operator that the test
+     * supplied to {@link #withConfig}. */
+    private SqlToRelConverter.Config sqlToRelConverterConfig() {
+      return this.config.apply(SqlToRelConverter.config()
+          .withTrimUnusedFields(false));
+    }
+
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable, roundTrip);
     }
   }
 }
