@@ -22,4 +22,11 @@ package org.apache.calcite.adapter.enumerable;
  * to tell if it is used in regular or windowed context.
  */
 public interface WinAggContext extends AggContext {
+  /** The exclude clause of the group of the window function. */
+  RexWindowExclusion getExclude();
+
+  /** Whether the window function ignores NULL values (IGNORE NULLS). */
+  default boolean ignoreNulls() {
+    return false;
+  }
 }
