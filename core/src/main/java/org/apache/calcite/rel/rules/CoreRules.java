@@ -807,4 +807,95 @@ public class CoreRules {
       WINDOW_REDUCE_EXPRESSIONS =
       ReduceExpressionsRule.WindowReduceExpressionsRule.WindowReduceExpressionsRuleConfig
           .DEFAULT.toRule();
+
+  /** Rule that flattens a tree of {@link LogicalJoin}s
+   * into a single {@link HyperGraph} with N inputs. */
+  @Experimental
+  public static final JoinToHyperGraphRule JOIN_TO_HYPER_GRAPH =
+      JoinToHyperGraphRule.Config.DEFAULT.toRule();
+
+  /** Rule that re-orders a {@link Join} tree using dphyp algorithm.
+   *
+   * @see #JOIN_TO_HYPER_GRAPH */
+  @Experimental
+  public static final DphypJoinReorderRule HYPER_GRAPH_OPTIMIZE =
+      DphypJoinReorderRule.Config.DEFAULT.toRule();
+
+  /** Rule that expands disjunction in the condition of a {@link Filter}.
+   *
+   * @see #EXPAND_JOIN_DISJUNCTION_GLOBAL */
+  public static final ExpandDisjunctionForTableRule EXPAND_FILTER_DISJUNCTION_GLOBAL =
+      ExpandDisjunctionForTableRule.Config.FILTER.toRule();
+
+  /** Rule that expands disjunction in the condition of a {@link Join}.
+   *
+   * @see #EXPAND_FILTER_DISJUNCTION_GLOBAL */
+  public static final ExpandDisjunctionForTableRule EXPAND_JOIN_DISJUNCTION_GLOBAL =
+      ExpandDisjunctionForTableRule.Config.JOIN.toRule();
+
+  /** Rule that expands disjunction in the condition of a {@link Filter} for join inputs.
+   *
+   * @see #EXPAND_JOIN_DISJUNCTION_LOCAL */
+  public static final ExpandDisjunctionForJoinInputsRule EXPAND_FILTER_DISJUNCTION_LOCAL =
+      ExpandDisjunctionForJoinInputsRule.Config.FILTER.toRule();
+
+  /** Rule that expands disjunction in the condition of a {@link Join} for join inputs.
+   *
+   * @see #EXPAND_FILTER_DISJUNCTION_LOCAL */
+  public static final ExpandDisjunctionForJoinInputsRule EXPAND_JOIN_DISJUNCTION_LOCAL =
+      ExpandDisjunctionForJoinInputsRule.Config.JOIN.toRule();
+
+  /** Rule that convert FULL JOIN to LEFT JOIN and RIGHT JOIN. */
+  public static final FullToLeftAndRightJoinRule FULL_TO_LEFT_AND_RIGHT_JOIN =
+      FullToLeftAndRightJoinRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts true filtered aggregates into CASE-style filtered aggregates. */
+  public static final AggregateFilterToCaseRule AGGREGATE_FILTER_TO_CASE =
+      AggregateFilterToCaseRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts an aggregate on of a filter into a filtered aggregate. */
+  public static final AggregateFilterToFilteredAggregateRule
+      AGGREGATE_FILTER_TO_FILTERED_AGGREGATE =
+      AggregateFilterToFilteredAggregateRule.Config.DEFAULT.toRule();
+
+  /** Rule that remove duplicate {@link Sort} keys. */
+  public static final SortRemoveDuplicateKeysRule SORT_REMOVE_DUPLICATE_KEYS =
+      SortRemoveDuplicateKeysRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts GROUPING SETS of {@link Aggregate}
+   *  into equivalent {@link Union} ALL of GROUP BY operations. */
+  public static final AggregateGroupingSetsToUnionRule AGGREGATE_GROUPING_SETS_TO_UNION =
+      AggregateGroupingSetsToUnionRule.Config.DEFAULT.toRule();
+
+  /** Rule that removes {@code LITERAL_AGG} aggregate calls by replacing them
+   * with literal expressions in a {@link Project}. */
+  public static final AggregateRemoveLiteralAggRule AGGREGATE_REMOVE_LITERAL_AGG =
+      AggregateRemoveLiteralAggRule.Config.DEFAULT.toRule();
+
+  /** Rule that moves the outer join semantics of a {@link Correlate} over an
+   * {@link Uncollect} onto the {@code Uncollect}, leaving an inner
+   * {@code Correlate} that {@link #UNNEST_DECORRELATE} may then remove. */
+  public static final CorrelateUncollectMergeRule CORRELATE_UNCOLLECT_OUTER =
+      CorrelateUncollectMergeRule.Config.OUTER.toRule();
+
+  /** Rule that converts a {@link Correlate} over an {@link Uncollect} into a
+   * single, generalized {@link Uncollect} that preserves the correlate's full
+   * output via passthrough fields. */
+  public static final CorrelateUncollectMergeRule CORRELATE_UNCOLLECT_MERGE =
+      CorrelateUncollectMergeRule.Config.DEFAULT.toRule();
+
+  /** Rule that narrows an {@link Uncollect} to the columns referenced by the
+   * {@link Project} above it. */
+  public static final ProjectUncollectMergeRule PROJECT_UNCOLLECT_MERGE =
+      ProjectUncollectMergeRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts a {@link Correlate} after an {@link Uncollect} into a simple
+   * Uncollect, if possible. */
+  public static final RelOptRule UNNEST_DECORRELATE =
+      UnnestDecorrelateRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts a {@link Correlate} after an {@link Project} of an
+   * {@link Uncollect} into a simple Uncollect, if possible. */
+  public static final RelOptRule UNNEST_PROJECT_DECORRELATE =
+      UnnestDecorrelateRule.Config.WITH_PROJECT.toRule();
 }
