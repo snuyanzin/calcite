@@ -294,8 +294,72 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       ConstantExpression format) {
     Expression convert = getConvertExpression(sourceType, targetType, operand, format);
     Expression convert2 = checkExpressionPadTruncate(convert, sourceType, targetType);
-    Expression convert3 = expressionHandlingSafe(convert2, safe);
-    return scaleValue(sourceType, targetType, convert3);
+    Expression convert3 = scaleValue(sourceType, targetType, convert2);
+    return expressionHandlingSafe(convert3, safe, targetType);
+  }
+
+  /** Returns whether every runtime value of {@code type} is null.
+   * This holds for the NULL type, which describes untyped NULL literals,
+   * and for the UNKNOWN type, e.g. the element type inferred for the
+   * no-argument array constructor ARRAY().  Such values are never
+   * created, but the code generated needs to typecheck. */
+  private static boolean valueIsAlwaysNull(RelDataType type) {
+    SqlTypeName typeName = type.getSqlTypeName();
+    return typeName == SqlTypeName.UNKNOWN || typeName == SqlTypeName.NULL;
+  }
+
+  /** Converts a ROW value to another ROW type, field by field. */
+  private Expression getRowConvertExpression(
+      RelDataType sourceType,
+      RelDataType targetType,
+      Expression operand,
+      ConstantExpression format) {
+    if (valueIsAlwaysNull(sourceType)) {
+      return Expressions.constant(null);
+    }
+    assert sourceType.getSqlTypeName() == SqlTypeName.ROW;
+    if (Types.getComponentType(operand.getType()) == null) {
+      // A ROW value is represented as an Object[] at runtime, but the
+      // expression that produces it may have type Object, for example an
+      // element of an array; the field access below requires an array.
+      operand = Expressions.convert_(operand, Object[].class);
+    }
+    List<RelDataTypeField> targetTypes = targetType.getFieldList();
+    List<RelDataTypeField> sourceTypes = sourceType.getFieldList();
+    assert targetTypes.size() == sourceTypes.size();
+    List<Expression> fields = new ArrayList<>();
+    for (int i = 0; i < targetTypes.size(); i++) {
+      RelDataTypeField targetField = targetTypes.get(i);
+      RelDataTypeField sourceField = sourceTypes.get(i);
+      Expression field = Expressions.arrayIndex(operand, Expressions.constant(i));
+      // In the generated Java code 'field' is an Object,
+      // we need to also cast it to the correct type to enable correct method dispatch in Java.
+      // We force the type to be nullable; this way, instead of (int) we get (Integer).
+      // Casting an object to an int is not legal.
+      RelDataType nullableSourceFieldType =
+          typeFactory.createTypeWithNullability(sourceField.getType(), true);
+      Type javaType = typeFactory.getJavaClass(nullableSourceFieldType);
+      if (nullableSourceFieldType.isStruct()) {
+        // A struct field is represented as Object[] at runtime;
+        // the recursive conversion below indexes into the field, which
+        // requires an array-typed operand.
+        field = Expressions.convert_(field, Object[].class);
+      } else if (!javaType.getTypeName().equals("java.lang.Void")) {
+        // Cannot cast to Void - this is the type of NULL literals.
+        field = Expressions.convert_(field, javaType);
+      }
+      Expression convert =
+          getConvertExpression(sourceField.getType(), targetField.getType(), field, format);
+      if (sourceField.getType().isNullable()) {
+        // field == null ? field : convert
+        convert =
+            Expressions.condition(
+                Expressions.equal(field, Expressions.constant(null)),
+                Expressions.constant(null), convert);
+      }
+      fields.add(convert);
+    }
+    return Expressions.call(BuiltInMethod.ARRAY.method, fields);
   }
 
   private Expression getConvertExpression(
