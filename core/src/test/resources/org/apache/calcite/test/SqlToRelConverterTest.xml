@@ -524,6 +524,160 @@ LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArrayRow">
+    <Resource name="sql">
+      <![CDATA[WITH tbl(r) AS (VALUES(1)) SELECT
+ARRAY(SELECT r, r FROM tbl)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(R=[$0], R0=[$0])
+        LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArraySubquery">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT empno FROM emp)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArraySubqueryOfNestedRow">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT ROW(ROW(1, 2), 3) FROM (VALUES (0)))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EXPR$0=[ROW(ROW($0, $1), $2)])
+        LogicalValues(tuples=[[{ 1, 2, 3 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArraySubqueryOrderByNonProjectedField">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY ename)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EMPNO=[$0])
+        LogicalSort(sort0=[$1], dir0=[ASC])
+          LogicalProject(EMPNO=[$0], ENAME=[$1])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArraySubqueryOrderByNonProjectedFieldWithoutExpand">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY ename)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY({
+LogicalProject(EMPNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArraySubqueryOrderByProjectedField">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY empno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalSort(sort0=[$0], dir0=[ASC])
+        LogicalProject(EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArraySubqueryOrderByProjectedFieldWithoutExpand">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY empno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY({
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArrayType">
+    <Resource name="sql">
+      <![CDATA[1 = any(array[1, 2, 3])]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+= SOME(1, ARRAY(1, 2, 3))
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAsOfCast">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (SELECT CAST(deptno % 10 AS BIGINT) as m, CAST(deptno AS BIGINT) as deptno FROM dept) D
+LEFT ASOF JOIN (SELECT CAST(empno as BIGINT) as empno, CAST(deptno AS BIGINT) AS deptno FROM emp) E
+MATCH_CONDITION D.deptno >= E.deptno
+ON D.m = E.empno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(M=[$0], DEPTNO=[$1], EMPNO=[$2], DEPTNO0=[$3])
+  LogicalAsofJoin(condition=[=($0, $2)], joinType=[left_asof], matchCondition=[>=($1, $3)])
+    LogicalProject(M=[CAST(MOD($0, 10)):BIGINT NOT NULL], DEPTNO=[CAST($0):BIGINT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(EMPNO=[CAST($0):BIGINT NOT NULL], DEPTNO=[CAST($7):BIGINT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAsOfJoin">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp asof join dept
+match_condition emp.deptno <= dept.deptno
+on ename = name]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalAsofJoin(condition=[=($1, $11)], joinType=[asof], matchCondition=[<=($7, $9)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAvoidUnnecessaryMeasureProject">
     <Resource name="sql">
       <![CDATA[select deptno
@@ -4479,6 +4633,21 @@ LogicalProject(C=[$0], N=[$1])
             LogicalValues(tuples=[[{ 2 }]])
             LogicalProject(EXPR$0=[$cor0.$f2])
               LogicalValues(tuples=[[{ 3 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMapSubqueryOfNestedRow">
+    <Resource name="sql">
+      <![CDATA[SELECT MAP(SELECT ROW(1, 2), 'x' FROM (VALUES (0)))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(EXPR$0=[ROW($0, $1)], EXPR$1=[$2])
+        LogicalValues(tuples=[[{ 1, 2, 'x' }]])
 ]]>
     </Resource>
   </TestCase>

@@ -231,9 +231,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           .projectNamed(structuringExps, resultFieldNames, true)
           .build();
       restructured = RelOptUtil.copyRelHints(flattened, restructured);
-      // REVIEW jvs 23-Mar-2005:  How do we make sure that this
-      // implementation stays in Java?  Fennel can't handle
-      // structured types.
       return restructured;
     } else {
       return flattened;
@@ -504,7 +501,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(Collect rel) {
-    rewriteGeneric(rel);
+    // Flattening does not rewrite collection element types
+    final RelNode newInput =
+        tryRestructure(rel.getInput(), getNewForOldRel(rel.getInput()));
+    setNewForOldRel(rel, rel.copy(rel.getTraitSet(), newInput));
   }
 
   public void rewriteRel(Uncollect rel) {
