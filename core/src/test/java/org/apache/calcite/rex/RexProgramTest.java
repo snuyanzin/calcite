@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
@@ -2418,6 +2419,245 @@ class RexProgramTest extends RexProgramTestBase {
         case_(gt(div(vIntNotNull(), literal(1)), literal(1)), falseLiteral,
             trueLiteral);
     checkSimplify(caseNode, "<=(?0.notNullInt0, 1)");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
+   * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
+  @Test void testSimplifyDivideSafe() {
+    // null + (a/0)/4   ==>   null + (a/0)/4
+    // a/0 throws an exception so it may not be simplified
+    RexNode divideNode0 = plus(nullInt, div(div(vIntNotNull(), literal(0)), literal(4)));
+    checkSimplifyUnchanged(divideNode0);
+    // null + a/4    ==>    null
+    RexNode divideNode1 = plus(nullInt, div(vIntNotNull(), literal(4)));
+    checkSimplify(divideNode1, "null:INTEGER");
+    // null + a/null    ==>    null
+    RexNode divideNode2 = plus(nullInt, div(vIntNotNull(), nullInt));
+    checkSimplify(divideNode2, "null:INTEGER");
+    // null + null/0    ==>    null
+    // The SQL standard gives NULL a higher priority than division by 0.
+    // This is the same behavior as PostgreSQL, Oracle, SQLite, MariaDB, and MySQL.
+    RexNode divideNode3 = plus(nullInt, div(nullInt, literal(0)));
+    checkSimplify(divideNode3, "null:INTEGER");
+    // null + a/0   ==>   null + a/0
+    RexNode divideNode4 = plus(nullInt, div(vIntNotNull(), literal(0)));
+    checkSimplifyUnchanged(divideNode4);
+    // null + a/b    ==>    null + a/b
+    // b might be 0 and throw an exception, so a/b cannot be simplified.
+    // E.g., PostgreSQL throws a division-by-zero error for the following query:
+    // SELECT NULL + (a/b) FROM (select 1 as a, 0 as b) t
+    RexNode divideNode5 = plus(nullInt, div(vIntNotNull(), vIntNotNull()));
+    checkSimplifyUnchanged(divideNode5);
+    // (1/0) + (null/0)   ==>   (1/0) + null
+    RexNode divideNode6 = plus(div(literal(1), literal(0)), div(nullInt, literal(0)));
+    checkSimplify(divideNode6, "+(/(1, 0), null)");
+    // null/(1/0)   ==>   null/(1/0)
+    RexNode divideNode7 = div(nullInt, div(literal(1), literal(0)));
+    checkSimplifyUnchanged(divideNode7);
+    // (1/0)/null   ==>   (1/0)/null
+    RexNode divideNode8 = div(div(literal(1), literal(0)), nullInt);
+    checkSimplifyUnchanged(divideNode8);
+  }
+
+  /** Test cases for IS NULL(x/y).
+   * See <a href="https://issues.apache.org/jira/browse/CALCITE-7145">[CALCITE-7145]
+   * RexSimplify should not simplify IS NULL(10/0)</a>. */
+  @Test void testSimplifyIsNullDivide() {
+    RelDataType intType = tInt(false);
+
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), literal(0))));
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), cast(literal(0), intType))));
+    checkSimplify(isNull(div(vIntNotNull(), cast(literal(2), intType))), "false");
+
+    checkSimplifyUnchanged(isNull(div(cast(literal(2), intType), vIntNotNull())));
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), vIntNotNull())));
+
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), literal(0))));
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), cast(literal(0), intType))));
+    checkSimplify(isNotNull(div(vIntNotNull(), cast(literal(2), intType))), "true");
+
+    checkSimplifyUnchanged(isNotNull(div(cast(literal(2), intType), vIntNotNull())));
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), vIntNotNull())));
+
+    checkSimplifyUnchanged(isNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "false");
+
+    checkSimplifyUnchanged(isNotNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNotNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "true");
+
+    checkSimplify(isNull(cast(div(vIntNotNull(), literal(0)), tBigInt())),
+        "IS NULL(/(?0.notNullInt0, 0))");
+    checkSimplify(isNotNull(cast(div(vIntNotNull(), literal(0)), tBigInt())),
+        "IS NOT NULL(/(?0.notNullInt0, 0))");
+  }
+
+  /**
+   * Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7295">[CALCITE-7295]
+   * RexSimplify should simplify a division with a NULL argument</a>.
+   */
+  @Test void testSimplifyIsNullDivideWithNullArgument() {
+    checkSimplify(isNull(div(nullInt, literal(0))), "true");
+    checkSimplify(isNull(div(literal(0), nullInt)), "true");
+
+    checkSimplify(isNotNull(div(nullInt, literal(0))), "false");
+    checkSimplify(isNotNull(div(literal(0), nullInt)), "false");
+
+    checkSimplify(isNull(div(nullDecimal, literal(BigDecimal.ZERO))), "true");
+    checkSimplify(isNotNull(div(nullDecimal, literal(BigDecimal.ZERO))), "false");
+
+    // do not simplify if one of the operands may throw an exception
+    checkSimplifyUnchanged(div(nullInt, cast(vVarchar(), tInt(false))));
+    checkSimplifyUnchanged(div(cast(vVarchar(), tInt(false)), nullInt));
+  }
+
+  /**
+   * Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7722">[CALCITE-7722]
+   * RexSimplify IS [NOT] NULL on a safe operator with Strong policy ANY and unsafe operands
+   * can be further simplified</a>.
+   */
+  @Test void testSimplifyIsNotNullDistributesAcrossStrongOpWithLossyCast() {
+    // "(CAST(?0.varchar0):INTEGER + 1) IS NOT NULL" ==> "IS NOT NULL(CAST(?0.varchar0):INTEGER)"
+    // The outer PLUS is strong AND shallow-safe; distribution keeps the
+    // non-lossless CAST inside the rewrapped IS NOT NULL
+    checkSimplify(
+        isNotNull(plus(cast(vVarchar(), tInt(true)), literal(1))),
+        "IS NOT NULL(CAST(?0.varchar0):INTEGER)");
+
+    // Symmetric IS NULL peel:
+    // "(CAST(?0.varchar0):INTEGER + 1) IS NULL" ==> "IS NULL(CAST(?0.varchar0):INTEGER)"
+    checkSimplify(
+        isNull(plus(cast(vVarchar(), tInt(true)), literal(1))),
+        "IS NULL(CAST(?0.varchar0):INTEGER)");
+
+    // Confirm this is consistent with same expression without CAST
+    checkSimplify(isNotNull(plus(vInt(), literal(1))), "IS NOT NULL(?0.int0)");
+    checkSimplify(isNull(plus(vInt(), literal(1))), "IS NULL(?0.int0)");
+
+    // MULTIPLY is also strong + shallow-safe
+    checkSimplify(
+        isNotNull(mul(cast(vVarchar(), tInt(true)), literal(2))),
+        "IS NOT NULL(CAST(?0.varchar0):INTEGER)");
+    checkSimplify(
+        isNull(mul(cast(vVarchar(), tInt(true)), literal(2))),
+        "IS NULL(CAST(?0.varchar0):INTEGER)");
+    checkSimplify(isNotNull(mul(vInt(), literal(2))), "IS NOT NULL(?0.int0)");
+    checkSimplify(isNull(mul(vInt(), literal(2))), "IS NULL(?0.int0)");
+
+    // PLUS of two non-lossless CAST
+    checkSimplify(
+        isNotNull(
+            plus(
+                cast(vVarchar(0), tInt(true)),
+                cast(vVarchar(1), tInt(true)))),
+        "AND(IS NOT NULL(CAST(?0.varchar0):INTEGER), IS NOT NULL(CAST(?0.varchar1):INTEGER))");
+    checkSimplify(
+        isNull(
+            plus(
+                cast(vVarchar(0), tInt(true)),
+                cast(vVarchar(1), tInt(true)))),
+        "OR(IS NULL(CAST(?0.varchar0):INTEGER), IS NULL(CAST(?0.varchar1):INTEGER))");
+
+    // Nested PLUS:
+    // "((CAST(?0.varchar0):INTEGER + 1) + 2) IS NOT NULL"
+    //   ==> "IS NOT NULL(CAST(?0.varchar0):INTEGER)"
+    checkSimplify(
+        isNotNull(
+            plus(plus(cast(vVarchar(), tInt(true)), literal(1)), literal(2))),
+        "IS NOT NULL(CAST(?0.varchar0):INTEGER)");
+
+    // Operators with checked arithmetic: they cannot be peeled because they are not "safe"
+    // (they will throw at runtime in case of overflow)
+    checkSimplifyUnchanged(
+        isNotNull(checkedPlus(cast(vVarchar(), tInt(true)), literal(1))));
+    checkSimplifyUnchanged(
+        isNull(checkedPlus(cast(vVarchar(), tInt(true)), literal(1))));
+    checkSimplifyUnchanged(
+        isNotNull(checkedMul(cast(vVarchar(), tInt(true)), literal(2))));
+    checkSimplifyUnchanged(
+        isNull(checkedMul(cast(vVarchar(), tInt(true)), literal(2))));
+
+    // Arithmetic on DATE
+    checkSimplify(
+        isNotNull(sub(vDate(), cast(vVarchar(), tDate(true)))),
+        "AND(IS NOT NULL(?0.date0), IS NOT NULL(CAST(?0.varchar0):DATE))");
+
+    // The outer PLUS is shallow-safe, but the div(1, 0) is not, so no further simplification occurs
+    checkSimplify(
+        isNotNull(plus(div(literal(1), literal(0)), vIntNotNull())),
+        "IS NOT NULL(/(1, 0))");
+    checkSimplify(
+        isNull(plus(div(literal(1), literal(0)), vIntNotNull())),
+        "IS NULL(/(1, 0))");
+
+    // The outer PLUS / MULT is shallow-safe, but the CAST is not (non-lossless),
+    // so no further simplification occurs
+    checkSimplify(isNull(plus(cast(vVarchar(), tInt(false)), literal(2))),
+        "IS NULL(CAST(?0.varchar0):INTEGER NOT NULL)");
+    checkSimplify(isNull(mul(cast(vVarchar(), tInt(false)), literal(2))),
+        "IS NULL(CAST(?0.varchar0):INTEGER NOT NULL)");
+    checkSimplify(isNotNull(plus(cast(vVarchar(), tInt(false)), literal(2))),
+        "IS NOT NULL(CAST(?0.varchar0):INTEGER NOT NULL)");
+    checkSimplify(isNotNull(mul(cast(vVarchar(), tInt(false)), literal(2))),
+        "IS NOT NULL(CAST(?0.varchar0):INTEGER NOT NULL)");
+
+    // The outer PLUS / MULT is shallow-safe, and the CAST is safe too (lossless CAST),
+    // so fully simplified
+    checkSimplify(isNull(plus(cast(vSmallInt(), tInt(false)), literal(2))),
+        "false");
+    checkSimplify(isNull(mul(cast(vSmallInt(), tInt(false)), literal(2))),
+        "false");
+    checkSimplify(isNotNull(plus(cast(vSmallInt(), tInt(false)), literal(2))),
+        "true");
+    checkSimplify(isNotNull(mul(cast(vSmallInt(), tInt(false)), literal(2))),
+        "true");
+
+    // IS NOT NULL(x/0) itself is not peeled, because DIVIDE with a literal-zero divisor is not safe
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), literal(0))));
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), literal(0))));
+    checkSimplifyUnchanged(isNull(div(cast(vIntNotNull(), tBigInt()), literal(0))));
+
+    // IS NULL(CAST(10/0 AS BIGINT)) stays as IS NULL(10/0) after the lossless-CAST strip;
+    // the DIVIDE is not safe, so no further distribution occurs
+    checkSimplify(isNull(cast(div(vIntNotNull(), literal(0)), tBigInt())),
+        "IS NULL(/(?0.notNullInt0, 0))");
+
+    // A bit more complex AND expression:
+    // AND(
+    // CAST(?0.varchar0):INTEGER < 100,
+    // IS NOT NULL(CAST(?0.varchar0):INTEGER + 1))
+    // ===> CAST(?0.varchar0):INTEGER < 100
+    checkSimplifyFilter(
+        and(
+            lt(cast(vVarchar(), tInt(true)), literal(100)),
+            isNotNull(plus(cast(vVarchar(), tInt(true)), literal(1)))),
+        "<(CAST(?0.varchar0):INTEGER, 100)");
+  }
+
+  @Disabled("[CALCITE-7746] Review operation safety on arithmetic on dates and intervals")
+  @Test void testSimplifyIsNotNullDistributesAcrossStrongOpWithIntervals() {
+    // Arithmetic on DATE and INTERVAL should be considered "unsafe" (since
+    // it can throw at runtime), so simplification should not be applied
+    checkSimplifyUnchanged(
+        isNotNull(plus(cast(vVarchar(), tDate(true)), interval(10, TimeUnit.DAY))));
+    checkSimplifyUnchanged(
+        isNull(plus(cast(vVarchar(), tDate(true)), interval(1, TimeUnit.MONTH))));
+    checkSimplifyUnchanged(
+        isNull(
+            plus(
+                plus(cast(vVarchar(), tDate(true)), interval(1, TimeUnit.MONTH)),
+                interval(10, TimeUnit.DAY))));
+    checkSimplifyUnchanged(
+        and(
+            isNotNull(plus(cast(vVarchar(), tDate(true)), interval(5, TimeUnit.MONTH))),
+            isNotNull(
+                plus(
+                    plus(cast(vVarchar(), tDate(true)), interval(1, TimeUnit.MONTH)),
+                    interval(10, TimeUnit.DAY)))));
   }
 
   @Test void testPushNotIntoCase() {
