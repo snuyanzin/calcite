@@ -1199,7 +1199,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   @Override public Result visitLambdaRef(RexLambdaRef ref) {
     final ParameterExpression valueVariable =
         Expressions.parameter(
-            typeFactory.getJavaClass(ref.getType()), ref.getName());
+            javaVariableType(ref.getType()), ref.getName());
 
     // Generate one line of code to check whether lambdaRef is null, e.g.,
     // "final boolean input_isNull = $0 == null;"
@@ -1627,7 +1627,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       final RexLambdaRef rexLambdaRef = rexLambdaRefs.get(i);
       parameterExpressions[i] =
           Expressions.parameter(
-              typeFactory.getJavaClass(rexLambdaRef.getType()), rexLambdaRef.getName());
+              Modifier.FINAL, javaVariableType(rexLambdaRef.getType()),
+              rexLambdaRef.getName());
     }
 
     // Generate code for lambda expression body
