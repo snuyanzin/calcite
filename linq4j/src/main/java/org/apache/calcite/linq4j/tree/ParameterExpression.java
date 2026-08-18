@@ -37,10 +37,9 @@ public class ParameterExpression extends Expression {
 
   public ParameterExpression(int modifier, Type type, String name) {
     super(ExpressionType.Parameter, type);
-    assert name != null : "name should not be null";
-    assert Character.isJavaIdentifierStart(name.charAt(0))
-      : "parameter name should be valid java identifier: "
-        + name + ". The first character is invalid.";
+    checkArgument(Types.isValidJavaIdentifier(requireNonNull(name, "name")),
+        "parameter name should be a valid java identifier: %s",
+        name);
     this.modifier = modifier;
     this.name = name;
   }
