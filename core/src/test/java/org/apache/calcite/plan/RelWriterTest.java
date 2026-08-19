@@ -51,6 +51,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -556,6 +557,95 @@ class RelWriterTest {
           return writer.asString();
         });
     assertThat(s, is(XX));
+  }
+
+  static final String BINARY_LITERAL = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalValues\",\n"
+      + "      \"type\": [\n"
+      + "        {\n"
+      + "          \"type\": \"BINARY\",\n"
+      + "          \"nullable\": false,\n"
+      + "          \"precision\": 2,\n"
+      + "          \"name\": \"$f0\"\n"
+      + "        }\n"
+      + "      ],\n"
+      + "      \"tuples\": [\n"
+      + "        [\n"
+      + "          {\n"
+      + "            \"literal\": \"0a4b\",\n"
+      + "            \"type\": {\n"
+      + "              \"type\": \"BINARY\",\n"
+      + "              \"nullable\": false,\n"
+      + "              \"precision\": 2\n"
+      + "            }\n"
+      + "          }\n"
+      + "        ]\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6980">
+   * [CALCITE 6980] RelJson cannot serialize binary literals</a>. */
+  @Test void testVarbinary() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelDataType rowType = b.getTypeFactory().builder()
+          .add("a", SqlTypeName.INTEGER)
+          .build();
+      return b.values(rowType, 0)
+          .project(b.getRexBuilder().makeBinaryLiteral(new ByteString(new byte[]{0xA, 0x4B})))
+          .build();
+    };
+    relFn(relFn)
+        .assertThatJson(isLinux(BINARY_LITERAL));
+  }
+
+  static final String UUID_LITERAL = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalValues\",\n"
+      + "      \"type\": [\n"
+      + "        {\n"
+      + "          \"type\": \"UUID\",\n"
+      + "          \"nullable\": false,\n"
+      + "          \"name\": \"$f0\"\n"
+      + "        }\n"
+      + "      ],\n"
+      + "      \"tuples\": [\n"
+      + "        [\n"
+      + "          {\n"
+      + "            \"literal\": \"123e4567-e89b-12d3-a456-426655440000\",\n"
+      + "            \"type\": {\n"
+      + "              \"type\": \"UUID\",\n"
+      + "              \"nullable\": false\n"
+      + "            }\n"
+      + "          }\n"
+      + "        ]\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6992">
+   * [CALCITE 6992] RelJson cannot serialize UUID literals</a>. */
+  @Test void testUuid() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelDataType rowType = b.getTypeFactory().builder()
+          .add("a", SqlTypeName.INTEGER)
+          .build();
+      return b.values(rowType, 0).project(
+          b.getRexBuilder().makeUuidLiteral(
+              SqlFunctions.stringToUuid("123e4567-e89b-12d3-a456-426655440000")))
+          .build();
+    };
+    relFn(relFn)
+        .assertThatJson(isLinux(UUID_LITERAL));
   }
 
   /**

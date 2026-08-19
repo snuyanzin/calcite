@@ -50,6 +50,8 @@ import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.RexWindowExclusion;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -826,6 +828,15 @@ public class RelJson {
         }
         if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
+        } else if (sqlTypeName == SqlTypeName.TIMESTAMP
+            || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          if (literal instanceof Integer) {
+            literal = ((Integer) literal).longValue();
+          }
+        } else if (sqlTypeName == SqlTypeName.BINARY || sqlTypeName == SqlTypeName.VARBINARY) {
+          literal = ByteString.of((String) literal, 16);
+        } else if (sqlTypeName == SqlTypeName.UUID) {
+          literal = SqlFunctions.stringToUuid((String) literal);
         }
         return rexBuilder.makeLiteral(literal, type);
       }

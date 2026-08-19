@@ -153,6 +153,12 @@ import static java.util.Objects.requireNonNull;
 public class CalciteAssert {
   private CalciteAssert() {}
 
+  // Define string constants before DB to prevent recursive
+  // static initializers
+  private static final String TEST_MYSQL_URL = "jdbc:mysql://localhost/foodmart";
+
+  private static final String TEST_MYSQL_DRIVER = "com.mysql.jdbc.Driver";
+
   /**
    * Which database to use for tests that require a JDBC data source.
    *
@@ -1974,8 +1980,14 @@ public class CalciteAssert {
             + "/h2/target/foodmart;user=foodmart;password=foodmart",
             "foodmart", "foodmart", "org.h2.Driver", "foodmart"), null),
     MYSQL(
-        new ConnectionSpec("jdbc:mysql://localhost/foodmart", "foodmart",
-            "foodmart", "com.mysql.jdbc.Driver", "foodmart"), null),
+        new ConnectionSpec(TEST_MYSQL_URL, "foodmart",
+            "foodmart", TEST_MYSQL_DRIVER, "foodmart"), null, null),
+    STARROCKS(
+        new ConnectionSpec(TEST_MYSQL_URL, "foodmart",
+            "foodmart", TEST_MYSQL_DRIVER, "foodmart"), null, null),
+    DORIS(
+        new ConnectionSpec(TEST_MYSQL_URL, "foodmart",
+            "foodmart", TEST_MYSQL_DRIVER, "foodmart"), null, null),
     ORACLE(
         new ConnectionSpec("jdbc:oracle:thin:@localhost:1521:XE", "foodmart",
             "foodmart", "oracle.jdbc.OracleDriver", "FOODMART"), null),

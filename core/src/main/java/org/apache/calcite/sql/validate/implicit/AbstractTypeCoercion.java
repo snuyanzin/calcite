@@ -289,13 +289,17 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
 
-    // No casts to binary except from strings
-    if (SqlTypeUtil.isBinary(fromType) && !SqlTypeUtil.isString(toType)) {
+    // No casts from binary except to strings and UUID
+    if (SqlTypeUtil.isBinary(fromType)
+        && !SqlTypeUtil.isString(toType)
+        && toType.getSqlTypeName() != SqlTypeName.UUID) {
       return false;
     }
 
-    // No casts from binary except to strings
-    if (SqlTypeUtil.isBinary(toType) && !SqlTypeUtil.isString(fromType)) {
+    // No casts to binary except from strings and UUID
+    if (SqlTypeUtil.isBinary(toType)
+        && !SqlTypeUtil.isString(fromType)
+        && fromType.getSqlTypeName() != SqlTypeName.UUID) {
       return false;
     }
 
@@ -503,9 +507,22 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return null;
     }
 
-    // DATETIME + CHARACTER -> DATETIME
-    // REVIEW Danny 2019-09-23: There is some legacy redundant code in SqlToRelConverter
-    // that coerce Datetime and CHARACTER comparison.
+    if (SqlTypeUtil.sameNamedType(type1, type2)) {
+      return factory.leastRestrictive(ImmutableList.of(type1, type2));
+    }
+
+    // CHARACTER or BINARY < UUID -> UUID, similar to CHAR < INT -> INT
+    if ((SqlTypeUtil.isCharacter(type1) || SqlTypeUtil.isBinary(type1))
+        && typeName2 == SqlTypeName.UUID) {
+      return factory.createTypeWithNullability(type2, anyNullable);
+    }
+
+    if ((SqlTypeUtil.isCharacter(type2) || SqlTypeUtil.isBinary(type2))
+        && typeName1 == SqlTypeName.UUID) {
+      return factory.createTypeWithNullability(type1, anyNullable);
+    }
+
+    // DATETIME < CHARACTER -> DATETIME
     if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isDatetime(type2)) {
       return type2;
     }
