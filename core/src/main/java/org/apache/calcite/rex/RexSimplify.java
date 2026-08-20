@@ -825,8 +825,11 @@ public class RexSimplify {
 
   private RexNode simplifyUnaryMinus(RexCall call, RexUnknownAs unknownAs) {
     final RexNode a = call.getOperands().get(0);
-    if (a.getKind() == SqlKind.MINUS_PREFIX) {
-      // -(-(x)) ==> x
+    if (call.getKind() == SqlKind.MINUS_PREFIX
+        && a.getKind() == SqlKind.MINUS_PREFIX) {
+      // -(-(x)) ==> x.
+      // Not valid for checked arithmetic, where negation of the minimum value
+      // of the type throws.
       return simplify(((RexCall) a).getOperands().get(0), unknownAs);
     }
     return simplifyGenericNode(call);
@@ -1363,7 +1366,33 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitCall(RexCall call) {
-      if (!safeOps.contains(call.getKind())) {
+      SqlKind sqlKind = call.getKind();
+      SqlOperator sqlOperator = call.getOperator();
+
+      if (SqlKind.CHECKED_ARITHMETIC.contains(sqlKind)) {
+        // Checked arithmetic throws on overflow, so it is only safe when the
+        // arithmetic is never performed, i.e. when an operand is NULL.
+        return RexVisitorImpl.visitArrayAnd(this, call.operands)
+            && call.operands.stream().anyMatch(o -> RexUtil.isNullLiteral(o, true));
+      }
+
+      switch (sqlKind) {
+      case DIVIDE:
+      case MOD:
+        List<RexNode> operands = call.getOperands();
+        boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
+        if (!areOperandsSafe) {
+          return false;
+        }
+        boolean hasNullOperand = RexUtil.isNullLiteral(operands.get(0), true)
+            || RexUtil.isNullLiteral(operands.get(1), true);
+        if (hasNullOperand) {
+          return true;
+        }
+        if (operands.get(1) instanceof RexLiteral) {
+          return !checkLiteralValue(operands.get(1), BigDecimal.ZERO);
+        }
+        // the safety of division could not be deduced, so assume it is unsafe
         return false;
       }
       return RexVisitorImpl.visitArrayAnd(this, call.operands);
@@ -1417,6 +1446,8 @@ public class RexSimplify {
   *
   * <p>Division is an unsafe operator; consider the following:
   * <pre>case when a &gt; 0 then 1 / a else null end</pre>
+  *
+  * <p>Checked arithmetic is unsafe too, because it throws on overflow
   */
   static boolean isSafeExpression(RexNode r) {
     return r.accept(SafeRexVisitor.INSTANCE);

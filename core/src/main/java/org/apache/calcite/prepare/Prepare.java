@@ -255,6 +255,20 @@ public abstract class Prepare {
 
     RelRoot root =
         sqlToRelConverter.convertQuery(sqlQuery, needsValidation, true);
+    boolean convertToChecked = this.context.config().conformance().checkedArithmetic();
+    // Convert some operations to use checked arithmetic:
+    // - all arithmetic operations on exact types if the conformance requires checked arithmetic
+    // - all arithmetic that produces INTERVAL results, regardless of the conformance
+    //
+    // SqlToRelConverter already runs ConvertToChecked. This second conversion is needed for:
+    // - INTERVAL arithmetic under a conformance without checked
+    //   arithmetic (SqlToRelConverter installs no converter at all)
+    // - expressions that SqlToRelConverter does not build through
+    //   Blackboard#convertExpression
+    ConvertToChecked checkedConv =
+        new ConvertToChecked(root.rel.getCluster().getRexBuilder(), convertToChecked);
+    RelNode rel = checkedConv.visit(root.rel);
+    root = root.withRel(rel);
     Hook.CONVERTED.run(root.rel);
 
     if (timingTracer != null) {
