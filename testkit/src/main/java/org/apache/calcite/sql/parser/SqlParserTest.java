@@ -991,6 +991,49 @@ public class SqlParserTest {
         .ok("SELECT 999");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7731">[CALCITE-7731]
+   * Bound plain-notation expansion of DECIMAL literals to prevent parse-time
+   * OutOfMemoryError</a>. */
+  @Test void testDecimalLiteralWithOutOfRangeExponent() {
+    sql("select DECIMAL ^'1E2147483647'^")
+        .fails("(?s)Literal '1E2147483647' can not be parsed to type 'DECIMAL'.*");
+    sql("select DECIMAL ^'1E-2147483647'^")
+        .fails("(?s)Literal '1E-2147483647' can not be parsed to type 'DECIMAL'.*");
+    sql("select DECIMAL ^'1E1000000000'^")
+        .fails("(?s)Literal '1E1000000000' can not be parsed to type 'DECIMAL'.*");
+    sql("select DECIMAL ^'-9.9E999999999'^")
+        .fails("(?s)Literal '-9.9E999999999' can not be parsed to type 'DECIMAL'.*");
+    // Exponents within the bound still expand to plain notation.
+    sql("select DECIMAL '1E10'")
+        .ok("SELECT 10000000000");
+    sql("select DECIMAL '1E-10'")
+        .ok("SELECT 0.0000000001");
+  }
+
+  @Test void testDecimalWithScale() {
+    sql("select cast(15 as decimal(3, 1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 1))");
+    sql("select cast(15 as decimal(3, -1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, -1))");
+    sql("select cast(15 as decimal(3, 0))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 0))");
+  }
+
+  @Test void testDecimalWithPrecision() {
+    // the precision greater than the max precision
+    sql("select cast(15 as decimal(1000, 1))")
+        .ok("SELECT CAST(15 AS DECIMAL(1000, 1))");
+    sql("select cast(15 as decimal(3, 1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 1))");
+    sql("select cast(15 as decimal(^-^3, 1))")
+        .fails("Encountered \"-\" at line 1, column 27\\.\n"
+            + "Was expecting:\n"
+            + "    <UNSIGNED_INTEGER_LITERAL> \\.\\.\\.\n"
+            + "    ");
+    sql("select cast(15 as decimal(0, 0))")
+        .ok("SELECT CAST(15 AS DECIMAL(0, 0))");
+  }
+
   @Test void testDerivedColumnList() {
     sql("select * from emp as e (empno, gender) where true")
         .ok("SELECT *\n"

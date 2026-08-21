@@ -1087,6 +1087,26 @@ public class RexBuilder {
       }
       o = ((TimestampWithTimeZoneString) o).round(p);
       break;
+    case DECIMAL:
+      if (o == null) {
+        break;
+      }
+      assert o instanceof BigDecimal;
+      if (type instanceof IntervalSqlType) {
+        SqlIntervalQualifier qualifier = ((IntervalSqlType) type).getIntervalQualifier();
+        o = ((BigDecimal) o).multiply(qualifier.getUnit().multiplier);
+        typeName = type.getSqlTypeName();
+      } else if (type.getScale() != RelDataType.SCALE_NOT_SPECIFIED) {
+        o = ((BigDecimal) o).setScale(type.getScale(), typeFactory.getTypeSystem().roundingMode());
+        if (type.getScale() < 0) {
+          if (!SqlUtil.isBoundedDecimal((BigDecimal) o)) {
+            throw new IllegalArgumentException("Cannot convert " + o + " to " + type
+                + ": plain-notation expansion exceeds the configured bound");
+          }
+          o = new BigDecimal(((BigDecimal) o).toPlainString());
+        }
+      }
+      break;
     default:
       break;
     }

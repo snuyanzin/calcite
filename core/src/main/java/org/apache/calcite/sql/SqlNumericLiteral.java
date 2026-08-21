@@ -89,7 +89,11 @@ public class SqlNumericLiteral extends SqlLiteral {
 
   @Override public String toValue() {
     final BigDecimal bd = getValueNonNull();
-    if (isExact) {
+    if (exact) {
+      if (!SqlUtil.isBoundedDecimal(bd)) {
+        throw new IllegalArgumentException("DECIMAL literal '" + bd
+            + "' exceeds the configured plain-notation bound");
+      }
       return bd.toPlainString();
     }
     return Util.toScientificNotation(bd);

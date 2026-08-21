@@ -1564,8 +1564,12 @@ public abstract class SqlImplementor {
         return SqlLiteral.createApproxNumeric(
             castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
       } else {
-        return SqlLiteral.createExactNumeric(
-            castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+        final BigDecimal bd = castNonNull(literal.getValueAs(BigDecimal.class));
+        if (!SqlUtil.isBoundedDecimal(bd)) {
+          throw new IllegalStateException(
+              "DECIMAL literal exceeds the configured plain-notation bound: " + bd);
+        }
+        return SqlLiteral.createExactNumeric(bd.toPlainString(), POS);
       }
     }
     case APPROXIMATE_NUMERIC:
