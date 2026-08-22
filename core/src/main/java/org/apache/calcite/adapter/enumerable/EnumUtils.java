@@ -938,8 +938,12 @@ public class EnumUtils {
       Map<@Nullable Object, SortedMultiMap<Pair<Long, Long>, @Nullable Object[]>> sessionKeyMap =
           new HashMap<>();
       for (@Nullable Object[] element : elements) {
-        SortedMultiMap<Pair<Long, Long>, @Nullable Object[]> session =
-            sessionKeyMap.computeIfAbsent(element[indexOfKeyColumn], k -> new SortedMultiMap<>());
+        if (element[indexOfWatermarkedColumn] == null) {
+          continue;
+        }
+        // A key column index of -1 means that there is no key; every element
+        // then maps to the same (null) key, forming one session timeline.
+        Object key = indexOfKeyColumn < 0 ? null : element[indexOfKeyColumn];
         Object watermark =
             requireNonNull(element[indexOfWatermarkedColumn],
                 "element[indexOfWatermarkedColumn]");
