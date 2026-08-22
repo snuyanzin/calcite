@@ -1202,6 +1202,156 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7622">[CALCITE-7622]
+   * Don't fire JoinProjectTransposeRule for ANTI/SEMI/LEFT_MARK JOIN</a>. */
+  @Test void testJoinProjectTransposeDoesNotMatchSemiJoin() {
+    checkJoinProjectTransposeDoesNotMatch(JoinRelType.SEMI);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7622">[CALCITE-7622]
+   * Don't fire JoinProjectTransposeRule for ANTI/SEMI/LEFT_MARK JOIN</a>. */
+  @Test void testJoinProjectTransposeDoesNotMatchAntiJoin() {
+    checkJoinProjectTransposeDoesNotMatch(JoinRelType.ANTI);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7622">[CALCITE-7622]
+   * Don't fire JoinProjectTransposeRule for ANTI/SEMI/LEFT_MARK JOIN</a>. */
+  @Test void testJoinProjectTransposeDoesNotMatchLeftMarkJoin() {
+    checkJoinProjectTransposeDoesNotMatch(JoinRelType.LEFT_MARK);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7487">[CALCITE-7487]
+   * ProjectJoinTransposeRule throws ArrayIndexOutOfBoundsException in
+   * PushProjector when a Join input has a zero-column row type</a>. */
+  @Test void testProjectJoinTransposeWithZeroColumnRightInput() {
+    relFn(b -> zeroColumnJoinInputRelFn(b, false))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7487">[CALCITE-7487]
+   * ProjectJoinTransposeRule throws ArrayIndexOutOfBoundsException in
+   * PushProjector when a Join input has a zero-column row type</a>. */
+  @Test void testProjectJoinTransposeWithZeroColumnLeftInput() {
+    relFn(b -> zeroColumnJoinInputRelFn(b, true))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** Builds {@code Project(CAST(col1))} over a cross join in which one input is
+   * DEE -- a {@link org.apache.calcite.rel.core.Values} with an empty row type,
+   * the identity for cross join. The project must be non-identity, otherwise
+   * {@link RelBuilder} collapses it away and the rule never fires. */
+  private static RelNode zeroColumnJoinInputRelFn(RelBuilder b,
+      boolean deeOnLeft) {
+    final RelDataTypeFactory typeFactory = b.getTypeFactory();
+    final RelDataType bigintType =
+        typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelNode nonEmpty = b
+        .values(
+            ImmutableList.of(
+                ImmutableList.of(
+                    (RexLiteral) b.getRexBuilder().makeZeroLiteral(bigintType))),
+            typeFactory.builder().add("col1", bigintType).build())
+        .build();
+    final RelNode dee = b
+        .values(ImmutableList.of(ImmutableList.of()),
+            typeFactory.builder().build())
+        .build();
+    final RelDataType varcharType =
+        typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    return b
+        .push(deeOnLeft ? dee : nonEmpty)
+        .push(deeOnLeft ? nonEmpty : dee)
+        .join(JoinRelType.INNER, b.literal(true))
+        // DEE contributes no fields, so the sole column is at index 0
+        // whichever side it is on.
+        .project(b.getRexBuilder().makeCast(varcharType, b.field(0)))
+        .build();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7488">[CALCITE-7488]
+   * ProjectJoinTransposeRule produces row-type mismatch when pushing a compound
+   * expression containing a nullability-narrowing CAST through an outer
+   * Join</a>. */
+  @Test void testProjectJoinTransposeNarrowingCastInCompoundExpr() {
+    relFn(b -> castInCaseRelFn(b, JoinRelType.LEFT, true))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** As {@link #testProjectJoinTransposeNarrowingCastInCompoundExpr()}, but the
+   * null-generating input of the join is the left one. */
+  @Test void testProjectJoinTransposeNarrowingCastInCompoundExprRightJoin() {
+    relFn(b -> castInCaseRelFn(b, JoinRelType.RIGHT, true))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** As {@link #testProjectJoinTransposeNarrowingCastInCompoundExpr()}, but both
+   * inputs of the join are null-generating. */
+  @Test void testProjectJoinTransposeNarrowingCastInCompoundExprFullJoin() {
+    relFn(b -> castInCaseRelFn(b, JoinRelType.FULL, true))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** Without the narrowing casts the expression has a nullable type, so pushing
+   * it into the null-generating input does not change its type, and the rule
+   * still pushes it. */
+  @Test void testProjectJoinTransposeNullableCompoundExpr() {
+    relFn(b -> castInCaseRelFn(b, JoinRelType.LEFT, false))
+        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
+  }
+
+  /** Builds {@code Project(CASE(DNAME IS NOT NULL, DNAME, LOC))} over an outer
+   * join of EMP and DEPT, with DEPT on the null-generating side. The CASE is
+   * null whenever DEPT's columns are null, so it is a candidate for being pushed
+   * into the DEPT input. */
+  private static RelNode castInCaseRelFn(RelBuilder b, JoinRelType joinType,
+      boolean narrowing) {
+    final RexBuilder rb = b.getRexBuilder();
+    if (joinType == JoinRelType.RIGHT) {
+      b.scan("DEPT").scan("EMP");
+    } else {
+      b.scan("EMP").scan("DEPT");
+    }
+    b.join(joinType,
+        b.equals(b.field(2, 0, "DEPTNO"), b.field(2, 1, "DEPTNO")));
+    RexNode dname = b.field("DEPT", "DNAME");
+    RexNode loc = b.field("DEPT", "LOC");
+    if (narrowing) {
+      dname = rb.makeCast(notNullType(b, dname), dname, false, false);
+      loc = rb.makeCast(notNullType(b, loc), loc, false, false);
+    }
+    return b.project(
+            b.call(SqlStdOperatorTable.CASE,
+                b.call(SqlStdOperatorTable.IS_NOT_NULL, b.field("DEPT", "DNAME")),
+                dname, loc))
+        .build();
+  }
+
+  private static RelDataType notNullType(RelBuilder b, RexNode e) {
+    return b.getTypeFactory().createTypeWithNullability(e.getType(), false);
+  }
+
+  /** A SEMI, ANTI or LEFT_MARK join does not project its right input, so
+   * {@link JoinProjectTransposeRule} must not pull projects above it. */
+  private void checkJoinProjectTransposeDoesNotMatch(JoinRelType type) {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field("DEPTNO"))
+        .scan("DEPT")
+        .project(b.field("DEPTNO"))
+        .join(type,
+            b.equals(
+                b.field(2, 0, 0),
+                b.field(2, 1, 0)))
+        .build();
+    relFn(relFn).withRule(CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE).checkUnchanged();
+  }
+
   @Test void testJoinProjectTranspose1() {
     final String sql = "select a.name\n"
         + "from dept a\n"
