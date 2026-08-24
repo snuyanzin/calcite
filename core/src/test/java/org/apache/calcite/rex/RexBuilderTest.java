@@ -650,6 +650,85 @@ class RexBuilderTest {
     }
   }
 
+  /** Tests {@link RexBuilder#makeExactLiteral(BigDecimal, RelDataType)}. */
+  @Test void testDecimalWithRoundingMode() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteral = builder.makeExactLiteral(new BigDecimal("13.556"), type);
+    assertThat(rexLiteral.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteral.getValue(), hasToString("13.55"));
+    final RelDataTypeFactory typeFactoryHalfUp =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public RoundingMode roundingMode() {
+            return RoundingMode.HALF_UP;
+          }
+        });
+    final RelDataType typeHalfUp =
+        typeFactoryHalfUp.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RexBuilder builderHalfUp = new RexBuilder(typeFactoryHalfUp);
+    RexLiteral rexLiteralHalfUp =
+        builderHalfUp.makeExactLiteral(new BigDecimal("13.556"), typeHalfUp);
+    assertThat(rexLiteralHalfUp.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteralHalfUp.getValue(), hasToString("13.56"));
+  }
+
+  @Test void testDecimalWithNegativeScaleRoundingHalfUp() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public int getMinScale(SqlTypeName typeName) {
+            switch (typeName) {
+            case DECIMAL:
+              return -2;
+            default:
+              return super.getMinScale(typeName);
+            }
+          }
+
+          @Override public RoundingMode roundingMode() {
+            return RoundingMode.HALF_UP;
+          }
+        });
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteral = builder.makeLiteral(new BigDecimal("12355"), type);
+    assertThat(rexLiteral.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteral.getValue(), hasToString("12400"));
+  }
+
+  @Test void testDecimalWithNegativeScaleRoundingDown() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(
+            CustomTypeSystems.withMinScale(RelDataTypeSystem.DEFAULT,
+                typeName -> -2));
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteralHalfUp = builder.makeLiteral(new BigDecimal("12355"), type);
+    assertThat(rexLiteralHalfUp.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteralHalfUp.getValue(), hasToString("12300"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7731">[CALCITE-7731]
+   * Bound plain-notation expansion of DECIMAL literals to prevent parse-time
+   * OutOfMemoryError</a>. Casting to a DECIMAL type whose (dialect-permitted)
+   * negative scale would make the plain-notation expansion exceed the
+   * configured bound must fail rather than attempt the expansion. */
+  @Test void testDecimalWithNegativeScaleExceedingPlainNotationBound() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(
+            CustomTypeSystems.withMinScale(RelDataTypeSystem.DEFAULT,
+                typeName -> -20_000));
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -20_000);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final BigDecimal value = new BigDecimal("123");
+    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+      builder.makeLiteral(value, type);
+    });
+    assertThat(e.getMessage(),
+        containsString("plain-notation expansion exceeds the configured bound"));
+  }
+
   /** Tests {@link DateString} year range. */
   @Test void testDateStringYearError() {
     try {
