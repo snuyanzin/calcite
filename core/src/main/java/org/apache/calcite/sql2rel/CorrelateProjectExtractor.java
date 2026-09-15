@@ -18,6 +18,7 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
@@ -208,6 +209,12 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
     SimpleCorrelationCollector finder = new SimpleCorrelationCollector(corrId);
     plan.accept(new RelHomogeneousShuttle() {
       @Override public RelNode visit(RelNode other) {
+        // A nested correlate re-binding the same id owns the correlated refs below it, so
+        // stop the traversal to avoid collecting refs that do not belong to this correlate.
+        if (other instanceof Correlate
+            && ((Correlate) other).getCorrelationId().equals(corrId)) {
+          return other;
+        }
         if (other instanceof Project || other instanceof Filter) {
           other.accept(finder);
         }
