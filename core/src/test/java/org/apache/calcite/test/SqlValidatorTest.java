@@ -12074,6 +12074,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Tests validation of must-filter columns when a table is aliased with a
+   * column list, {@code AS t (c1, ..., cN)}, which is implemented by
+   * {@link org.apache.calcite.sql.validate.AliasNamespace}. The renaming is
+   * positional, so filter requirements must be preserved ordinal for
+   * ordinal.
+   */
+  @Test void testMustFilterColumnsWithAliasColumnList() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // Aliasing with a column list must not drop the must-filter fields
+    // ("a" renames EMPNO, "c" renames JOB)
+    fixture.withSql("^select * from emp as t(a, b, c, d, e, f, g, h, i)^")
+        .fails(missingFilters("A", "C"));
+    fixture.withSql("^select a, c from emp as t(a, b, c, d, e, f, g, h, i)^")
+        .fails(missingFilters("A", "C"));
+
+    // Filters on the renamed columns are filters on the underlying must-filter columns
+    fixture.withSql("select * from emp as t(a, b, c, d, e, f, g, h, i)\n"
+            + "where a = 1 and c = 'doctor'")
+        .ok();
+
+    // "b" renames the bypass field ENAME; filtering on it defuses the requirement
+    fixture.withSql("select * from emp as t(a, b, c, d, e, f, g, h, i)\n"
+            + "where b = '1'")
+        .ok();
+
+    // An enclosing query can still defuse the propagated requirement
+    fixture.withSql("select * from (\n"
+            + "  select * from emp as t(a, b, c, d, e, f, g, h, i))\n"
+            + "where a = 1 and c = 'doctor'")
+        .ok();
+  }
+
+  /**
    * Tests validation of must-filter columns.
    *
    * <p>If a table that implements
@@ -12286,11 +12323,836 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(missingFilters("JOB"));
   }
 
+  /**
+   * Tests validation of must-filter columns in set operations.
+   */
+  @Test void testMustFilterColumnsInSetOp() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    final List<String> ops = Arrays.asList("union", "union all", "intersect", "except");
+    for (String op : ops) {
+      // Wrapping a query in a set operation must not drop the operands'
+      // must-filter requirements
+      fixture.withSql("^select empno, job from emp\n"
+              + op + "\n"
+              + "select empno, job from emp^")
+          .fails(missingFilters("EMPNO", "JOB"));
+
+      // Valid if every operand applies the filters itself
+      fixture.withSql("select empno, job from emp\n"
+              + "where empno = 1 and job = 'doctor'\n"
+              + op + "\n"
+              + "select empno, job from emp\n"
+              + "where empno = 2 and job = 'undertaker'")
+          .ok();
+
+      // Valid because an enclosing query can still defuse the propagated
+      // requirement by filtering on the set operation's columns
+      fixture.withSql("select * from (\n"
+              + "select empno, job from emp\n"
+              + op + "\n"
+              + "select empno, job from emp)\n"
+              + "where empno = 1 and job = 'doctor'")
+          .ok();
+
+      // Valid because ENAME is a bypass field of EMP; filtering on it defuses
+      // the requirement inside each operand
+      fixture.withSql("select empno, job from emp where ename = '1'\n"
+              + op + "\n"
+              + "select empno, job from emp where ename = '2'")
+          .ok();
+
+      // Not valid because bypass field ENAME is not filtered in all operands
+      fixture.withSql("^select empno, job from emp where ename = '1'\n"
+              + op + "\n"
+              + "select empno, job from emp^")
+          .fails(missingFilters("EMPNO", "JOB"));
+    }
+  }
+
+  /**
+   * Tests validation of must-filter columns in set operations where one of
+   * the operands has no must-filter requirements. Such an operand must not
+   * prevent the other operands' remnant requirements from being defused by
+   * filtering a bypass field on the set operation's output.
+   */
+  @Test void testMustFilterColumnsInSetOpWithUnrestrictedOperand() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    final List<String> ops = Arrays.asList("union", "union all", "intersect", "except");
+    for (String op : ops) {
+      // Not valid because the remnant requirement on EMP.JOB is not defused
+      fixture.withSql("^select * from (\n"
+              + "select ename from emp where empno = 1\n"
+              + op + "\n"
+              + "select name from bonus) as x^")
+          .fails(missingFilters("JOB"));
+
+      // Valid because ENAME is a bypass field of the only operand that has
+      // requirements (BONUS has none), so filtering on it defuses the remnant
+      // requirement on EMP.JOB
+      fixture.withSql("select * from (\n"
+              + "select ename from emp where empno = 1\n"
+              + op + "\n"
+              + "select name from bonus) as x\n"
+              + "where x.ename = 'doctor'")
+          .ok();
+      fixture.withSql("select * from (\n"
+              + "select name from bonus\n"
+              + op + "\n"
+              + "select ename from emp where empno = 1) as x\n"
+              + "where x.name = 'doctor'")
+          .ok();
+    }
+  }
+
+  /**
+   * Tests validation of must-filter columns with the inclusion of bypass fields.
+   *
+   * <p>If a table that implements
+   * {@link org.apache.calcite.sql.validate.SemanticTable} tags fields as
+   * 'must-filter', and the SQL query does not contain a WHERE or HAVING clause
+   * on each of the tagged columns, the validator should throw an error.
+   * If any bypass field for a table is in a WHERE or HAVING clause for that
+   * SELECT statement, the must-filter requirements for that table are
+   * disabled.
+   */
+  @Test void testMustFilterColumnsWithBypass() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // Basic query
+    fixture.withSql("select empno\n"
+            + "from emp\n"
+            + "where job = 'doctor'\n"
+            + "and empno = 1")
+        .ok();
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "where concat(emp.empno, ' ') = 'abc'^")
+        .fails(missingFilters("JOB"));
+
+    // ENAME is a bypass field
+    fixture.withSql("select *\n"
+            + "from emp\n"
+            + "where concat(emp.ename, ' ') = 'abc'^")
+        .ok();
+
+    // SUBQUERIES
+    fixture.withSql("select * from (\n"
+            + "  select * from emp where empno = 1)\n"
+            + "where job = 'doctor'")
+        .ok();
+    fixture.withSql("^select * from (\n"
+            + "  select ename from emp where empno = 1)^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("select * from (\n"
+            + "  select job, ename from emp where empno = 1)"
+            + "where ename = '1'")
+        .ok();
+    fixture.withSql("select * from (\n"
+            + "  select empno, job from emp)\n"
+            + "where job = 'doctor' and empno = 1")
+        .ok();
+
+    // Deceitful alias #1. Filter on 'j' is a filter on the underlying 'job'.
+    fixture.withSql("select * from (\n"
+            + "  select job as j, ename as job\n"
+            + "  from emp\n"
+            + "  where empno = 1)\n"
+            + "where j = 'doctor'")
+        .ok();
+
+    // Deceitful alias #2. Filter on 'job' is a filter on the underlying
+    // 'slacker', so the underlying 'job' is missing a filter.
+    fixture.withSql("^select * from (\n"
+            + "  select job as j, slacker as job\n"
+            + "  from emp\n"
+            + "  where empno = 1)\n"
+            + "where job = 'doctor'^")
+        .fails(missingFilters("J"));
+
+    // Deceitful alias #3. Filter on 'job' is a filter on the underlying
+    // 'ename', which is a bypass field thus no exception.
+    fixture.withSql("select * from (\n"
+            + "  select job as j, ename as job\n"
+            + "  from emp\n"
+            + "  where empno = 1)\n"
+            + "where job = 'doctor'^")
+        .ok();
+    fixture.withSql("select * from (\n"
+            + "  select * from emp where job = 'doctor')\n"
+            + "where empno = 1")
+        .ok();
+    fixture.withSql("select * from (\n"
+            + "  select empno from emp where job = 'doctor')\n"
+            + "where empno = 1")
+        .ok();
+    fixture.withSql("^select * from (\n"
+            + "  select * from emp where empno = 1)^")
+        .fails(missingFilters("JOB"));
+
+    // Query is valid because ENAME is a bypass field
+    fixture.withSql("select * from (\n"
+            + "  select * from emp where ename = 1)^")
+        .ok();
+    fixture.withSql("^select * from (select * from `SALES`.`EMP`) as a1^ ")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select *\n"
+            + "from (select * from `SALES`.`EMP`) as a1\n"
+            + "where ename = '1'^ ")
+        .ok();
+
+    // JOINs
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno^")
+        .fails(missingFilters("EMPNO", "JOB", "NAME"));
+
+    // Query is invalid because ENAME is a bypass field for EMP table, but not
+    // the DEPT table.
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno where ename = '1'^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno\n"
+            + "where emp.empno = 1^")
+        .fails(missingFilters("JOB", "NAME"));
+    fixture.withSql("select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno\n"
+            + "where emp.empno = 1\n"
+            + "and emp.job = 'doctor'\n"
+            + "and dept.name = 'ACCOUNTING'")
+        .ok();
+    fixture.withSql("select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno\n"
+            + "where empno = 1\n"
+            + "and job = 'doctor'\n"
+            + "and dept.name = 'ACCOUNTING'")
+        .ok();
+
+    // Self-join
+    fixture.withSql("^select *\n"
+            + "from `SALES`.emp a1\n"
+            + "join `SALES`.emp a2 on a1.empno = a2.empno^")
+        .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
+
+    // Query is invalid because filtering on a bypass field in a1 disables
+    // must-filter for a1, but a2 must-filters are still required.
+    fixture.withSql("^select *\n"
+            + "from `SALES`.emp a1\n"
+            + "join `SALES`.emp a2 on a1.empno = a2.empno\n"
+            + "where a1.ename = '1'^")
+            .fails(missingFilters("EMPNO0", "JOB0"));
+
+    // Query is invalid because here are two JOB columns but only one is
+    // filtered.
+    fixture.withSql("^select *\n"
+            + "from emp a1\n"
+            + "join emp a2 on a1.empno = a2.empno\n"
+            + "where a2.empno = 1\n"
+            + "and a1.empno = 1\n"
+            + "and a2.job = 'doctor'^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("select *\n"
+            + "from emp a1\n"
+            + "join emp a2 on a1.empno = a2.empno\n"
+            + "where a2.empno = 1\n"
+            + "and a1.empno = 1\n"
+            + "and a2.job = 'doctor'^\n"
+            + "and a1.ename = '1'")
+        .ok();
+    fixture.withSql("select *\n"
+            + "from emp a1\n"
+            + "join emp a2 on a1.empno = a2.empno\n"
+            + "where a1.empno = 1\n"
+            + "and a1.job = 'doctor'\n"
+            + "and a2.empno = 2\n"
+            + "and a2.job = 'undertaker'\n")
+        .ok();
+    fixture.withSql("^select *\n"
+            + " from (select * from `SALES`.`EMP`) as a1\n"
+            + "join (select * from `SALES`.`EMP`) as a2\n"
+            + "  on a1.`EMPNO` = a2.`EMPNO`^")
+        .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
+
+    // Query is invalid because filtering on a bypass field in a1 disables
+    // must-filter for a1, but a2 must-filters are still required.
+    fixture.withSql("^select *\n"
+            + " from (select * from `SALES`.`EMP`) as a1\n"
+            + "join (select * from `SALES`.`EMP`) as a2\n"
+            + "  on a1.`EMPNO` = a2.`EMPNO`\n"
+            + "where a1.ename = '1'^")
+        .fails(missingFilters("EMPNO0", "JOB0"));
+    fixture.withSql("^select *\n"
+            + " from (select * from `SALES`.`EMP` where `ENAME` = '1') as a1\n"
+            + "join (select * from `SALES`.`EMP`) as a2\n"
+            + "  on a1.`EMPNO` = a2.`EMPNO`^")
+        .fails(missingFilters("EMPNO0", "JOB0"));
+
+    // USING
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept using(deptno)\n"
+            + "where emp.empno = 1^")
+        .fails(missingFilters("JOB", "NAME"));
+
+    // Query is invalid because ENAME is bypass field for EMP, but not for DEPT.
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept using(deptno)\n"
+            + "where emp.ename = '1'^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select *\n"
+            + "from emp\n"
+            + "join dept using(deptno)\n"
+            + "where emp.empno = 1\n"
+            + "and emp.job = 'doctor'\n"
+            + "and dept.name = 'ACCOUNTING'")
+        .ok();
+
+    // GROUP BY (HAVING)
+    fixture.withSql("select *\n"
+            + "from dept\n"
+            + "group by deptno, name\n"
+            + "having name = 'accounting_dept'")
+        .ok();
+    fixture.withSql("^select *\n"
+            + "from dept\n"
+            + "group by deptno, name^")
+        .fails(missingFilters("NAME"));
+
+    // Query is valid because DEPTNO is bypass field.
+    fixture.withSql("select *\n"
+            + "from dept\n"
+            + "group by deptno, name\n"
+            + "having deptno > '1'")
+        .ok();
+    fixture.withSql("select name\n"
+            + "from dept\n"
+            + "group by name\n"
+            + "having name = 'accounting'")
+        .ok();
+    fixture.withSql("^select name\n"
+            + "from dept\n"
+            + "group by name^ ")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select sum(sal)\n"
+            + "from emp\n"
+            + "where empno > 10\n"
+            + "and job = 'doctor'\n"
+            + "group by empno\n"
+            + "having sum(sal) > 100")
+        .ok();
+    fixture.withSql("^select sum(sal)\n"
+            + "from emp\n"
+            + "where empno > 10\n"
+            + "group by empno\n"
+            + "having sum(sal) > 100^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("^select sum(sal)\n"
+            + "from emp\n"
+            + "where empno > 10\n"
+            + "group by empno\n"
+            + "having sum(sal) > 100^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("select sum(sal), job\n"
+            + "from emp\n"
+            + "where empno > 10\n"
+            + "group by job\n"
+            + "having job = 'undertaker'")
+        .ok();
+    fixture.withSql("select sum(sal), ename\n"
+            + "from emp\n"
+            + "where empno > 10\n"
+            + "group by empno, ename\n"
+            + "having ename = '1'")
+        .ok();
+    fixture.withSql("select sum(sal)\n"
+            + "from emp\n"
+            + "where ename = '1'\n"
+            + "group by empno, ename\n"
+            + "having sum(sal) > 100")
+        .ok();
+
+    // CTE
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp order by empno)^\n"
+            + "SELECT * from cte")
+        .fails(missingFilters("EMPNO", "JOB"));
+
+    // Query is valid because ENAME is a bypass field.
+    fixture.withSql("WITH cte AS (\n"
+            + "  select * from emp where ename = '1' order by empno)^\n"
+            + "SELECT * from cte")
+        .ok();
+
+    // Query is valid because ENAME is a bypass field.
+    fixture.withSql("WITH cte AS (\n"
+        + "  select * from emp order by empno)^\n"
+        + "SELECT * from cte where ename = '1'")
+        .ok();
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp where empno = 1)^\n"
+            + "SELECT * from cte")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("WITH cte AS (\n"
+            + "  select *\n"
+            + "  from emp\n"
+            + "  where empno = 1\n"
+            + "  and job = 'doctor')\n"
+            + "SELECT * from cte")
+        .ok();
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp)^\n"
+            + "SELECT *\n"
+            + "from cte\n"
+            + "where empno = 1")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("WITH cte AS (\n"
+            + "  select * from emp where ename = '1')^\n"
+            + "SELECT *\n"
+            + "from cte\n")
+        .ok();
+    fixture.withSql("WITH cte AS (\n"
+            + "  select * from emp)^\n"
+            + "SELECT *\n"
+            + "from cte\n"
+            + "where ename = '1'")
+        .ok();
+    fixture.withSql("WITH cte AS (\n"
+            + "  select * from emp)\n"
+            + "SELECT *\n"
+            + "from cte\n"
+            + "where empno = 1\n"
+            + "and job = 'doctor'")
+        .ok();
+    fixture.withSql("WITH cte AS (\n"
+        + "  select * from emp where empno = 1)\n"
+        + "SELECT *\n"
+        + "from cte\n"
+        + "where job = 'doctor'")
+        .ok();
+    fixture.withSql("WITH cte AS (\n"
+            + "  select empno, job from emp)\n"
+            + "SELECT *\n"
+            + "from cte\n"
+            + "where empno = 1\n"
+            + "and job = 'doctor'")
+        .ok();
+
+    // Query is invalid because filters are missing on EMPNO and JOB.
+    // The error message only complains about JOB because EMPNO is in the SELECT
+    // clause, and could theoretically be filtered by an enclosing query.
+    fixture.withSql("^select empno\n"
+            + "from emp^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("^select empno,\n"
+            + "  sum(sal) over (order by mgr)\n"
+            + "from emp^")
+        .fails(missingFilters("JOB"));
+  }
+
+  /**
+   * Tests that must-filter columns cannot be bypassed by wrapping the
+   * protected table in a construct that transforms its rows (PIVOT,
+   * UNPIVOT, MATCH_RECOGNIZE or a table function) for which the filter
+   * requirement cannot be re-expressed in terms of the output columns.
+   * Validation fails closed: the filters must be applied within the input
+   * query itself.
+   */
+  @Test void testMustFilterColumnsFailClosedForRowTransforms() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // PIVOT
+    fixture.withSql("select * from ^emp^\n"
+            + "pivot (sum(sal) as ss for job in ('CLERK' as c))")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "pivot (sum(sal) as ss for deptno in (10 as d10))")
+        .ok();
+
+    // UNPIVOT
+    fixture.withSql("select * from ^emp^\n"
+            + "unpivot (remuneration\n"
+            + "  for remuneration_type in (comm as 'commission', sal as 'salary'))")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "unpivot (remuneration\n"
+            + "  for remuneration_type in (comm as 'commission', sal as 'salary'))")
+        .ok();
+
+    // MATCH_RECOGNIZE
+    fixture.withSql("select * from ^emp^\n"
+            + "match_recognize (\n"
+            + "  measures A.empno as e\n"
+            + "  pattern (A)\n"
+            + "  define A as A.empno > 0\n"
+            + ") as t")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from\n"
+            + "  (select * from emp where empno = 1 and job = 'doctor')\n"
+            + "match_recognize (\n"
+            + "  measures A.empno as e\n"
+            + "  pattern (A)\n"
+            + "  define A as A.empno > 0\n"
+            + ") as t")
+        .ok();
+
+    // Table functions pass their input tables' rows through (e.g. TUMBLE)
+    fixture.withSql("select * from table(\n"
+            + "^tumble(table emp, descriptor(hiredate), interval '2' hour)^)")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("select * from table(\n"
+            + "tumble((select * from emp where empno = 1 and job = 'doctor'),\n"
+            + "  descriptor(hiredate), interval '2' hour))")
+        .ok();
+  }
+
+  /**
+   * Tests that a must-filter obligation carried out of a subquery (a
+   * "remnant" obligation) can only be defused by filtering a bypass field of
+   * the table instance that produced it, not by filtering a bypass field of
+   * another instance of the same table that happens to carry the same alias.
+   */
+  @Test void testMustFilterRemnantMatchesTableInstance() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // The subquery leaves a remnant obligation on EMP.JOB (JOB is neither
+    // filtered nor selected, but the bypass field ENAME is selected);
+    // filtering ENAME on a second join instance of EMP, aliased "EMP" just
+    // like the table inside the subquery, must not defuse the subquery's
+    // remnant obligation: the filter constrains none of the subquery's rows
+    fixture.withSql("^select x.ename\n"
+            + "from (select ename from emp where empno = 1) as x\n"
+            + "join emp as emp on true\n"
+            + "where emp.ename = 'doctor'^")
+        .fails(missingFilters("JOB"));
+
+    // Filtering the bypass field of the subquery itself defuses the remnant
+    fixture.withSql("select x.ename\n"
+            + "from (select ename from emp where empno = 1) as x\n"
+            + "where x.ename = 'doctor'")
+        .ok();
+
+    // A query whose only outstanding obligation is a remnant imported from a
+    // subquery must propagate it to the top-level check
+    fixture.withSql("^select * from (\n"
+            + "  select sal from (\n"
+            + "    select ename, sal from emp where empno = 1))^")
+        .fails(missingFilters("JOB"));
+  }
+
+  /**
+   * Tests that, when a subquery joins several tables that each leave a
+   * remnant must-filter obligation, filtering the bypass field of one table
+   * defuses only that table's remnant obligation, not the other tables'.
+   */
+  @Test void testMustFilterRemnantMatchesSourceTable() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // The subquery leaves a remnant obligation on EMP.JOB (defusable via the
+    // bypass field ENAME) and another on DEPT.NAME (defusable via the bypass
+    // field DEPTNO). Filtering ENAME must not defuse DEPT.NAME.
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.ename = 'doctor'^")
+        .fails(missingFilters("NAME"));
+
+    // Likewise, filtering DEPTNO must not defuse EMP.JOB
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.deptno = 10^")
+        .fails(missingFilters("JOB"));
+
+    // Valid because both bypass fields are filtered
+    fixture.withSql("select * from (\n"
+            + "  select e.ename, d.deptno from emp as e, dept as d\n"
+            + "  where e.empno = 1) as x\n"
+            + "where x.ename = 'doctor' and x.deptno = 10")
+        .ok();
+
+    // DEPT.NAME is still a must-filter field of the subquery; filtering the
+    // bypass field ENAME of EMP must not defuse it
+    fixture.withSql("^select * from (\n"
+            + "  select e.ename, d.name from emp as e, dept as d\n"
+            + "  where e.empno = 1 and e.job = 'a') as x\n"
+            + "where x.ename = 'doctor'^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select * from (\n"
+            + "  select e.ename, d.name from emp as e, dept as d\n"
+            + "  where e.empno = 1 and e.job = 'a') as x\n"
+            + "where x.name = 'doctor'")
+        .ok();
+  }
+
+  @Test void testMustFilterColumnsInPipeQuery() {
+    final SqlValidatorFixture fixture = fixture()
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // "FROM emp" is "SELECT * FROM emp", and requires the same filters.
+    fixture.withSql("^from emp^")
+        .fails(missingFilters("EMPNO", "JOB"));
+
+    // A |> WHERE defuses them, exactly as a WHERE clause does.
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "^|> where empno = 1^")
+        .fails(missingFilters("JOB"));
+
+    // With two tables in the FROM clause, each contributes the fields at its
+    // own offset in the input table.
+    fixture.withSql("from emp, dept\n"
+            + "|> where empno = 1 and job = 'doctor' and name = 'x'")
+        .ok();
+    fixture.withSql("from emp, dept\n"
+            + "^|> where empno = 1 and job = 'doctor'^")
+        .fails(missingFilters("NAME"));
+
+    // In a pipeline of several steps, each step owes only what the previous
+    // steps have not defused.
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1 and job = 'doctor'\n"
+            + "|> where sal > 1000")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1\n"
+            + "|> where job = 'doctor'")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1\n"
+            + "^|> where sal > 1000^")
+        .fails(missingFilters("JOB"));
+
+    // A bypass field defuses the requirements in the step that filters it,
+    // and in all later steps.
+    fixture.withSql("from emp\n"
+            + "|> where ename = 'x'\n"
+            + "|> where sal > 1000")
+        .ok();
+    fixture.withSql("from emp\n"
+            + "|> where empno = 1\n"
+            + "|> where ename = 'x'")
+        .ok();
+
+    // With two tables and several steps, each table's fields are found at its
+    // own offset in each step's input, and a bypass field defuses only the
+    // requirements of its own table.
+    fixture.withSql("from emp, dept\n"
+            + "|> where empno = 1 and job = 'doctor'\n"
+            + "|> where name = 'x'")
+        .ok();
+    fixture.withSql("from emp, dept\n"
+            + "|> where empno = 1 and job = 'doctor'\n"
+            + "^|> where sal > 1000^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("from emp, dept\n"
+            + "|> where name = 'x'\n"
+            + "^|> where empno = 1^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("from emp, dept\n"
+            + "|> where ename = 'x'\n"
+            + "|> where name = 'y'")
+        .ok();
+    fixture.withSql("from emp, dept\n"
+            + "|> where ename = 'x'\n"
+            + "^|> where sal > 1000^")
+        .fails(missingFilters("NAME"));
+
+    // A pipeline in a sub-query is defused by the enclosing query, and
+    // enforced at the top if it is not.
+    fixture.withSql("select * from (from emp |> where sal > 1000)\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("^select * from (from emp |> where sal > 1000)^")
+        .fails(missingFilters("EMPNO", "JOB"));
+  }
+
   /** Returns a message that the particular columns are not filtered. */
   private static String missingFilters(String... args) {
     return "SQL statement did not contain filters on the following fields: \\["
         + String.join(", ", new TreeSet<>(Arrays.asList(args)))
         + "\\]";
+  }
+
+  @Test void testMustFilterColumnsInDml() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // --- INSERT ---
+    fixture.withSql("insert into dept ^select empno, job from emp^")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("insert into dept\n"
+            + "^select empno, ename from emp where empno = 1^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("insert into dept\n"
+            + "select empno, job from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("insert into dept\n"
+            + "select empno, job from emp\n"
+            + "where ename = 'doctor'")
+        .ok();
+
+    // --- UPDATE ---
+    fixture.withSql("update emp set sal = 100")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("update emp set sal = 100 where deptno = 10")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("update emp set sal = 100 where empno = 1")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("update emp set sal = 100\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("update emp set sal = 100 where ename = 'foo'")
+        .ok();
+
+    // --- DELETE ---
+    fixture.withSql("delete from emp")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("delete from emp where empno = 1")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("delete from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+    fixture.withSql("delete from emp\n"
+            + "where ename = 'doctor'")
+        .ok();
+
+    // --- MERGE ---
+    fixture.withSql("merge into dept d\n"
+            + "using emp e on d.deptno = e.deptno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (deptno, name) values (e.deptno, e.ename)")
+        .fails(missingFilters("EMPNO", "JOB", "NAME"));
+    fixture.withSql("merge into dept d\n"
+            + "using (select * from emp where empno = 1 and job = 'doctor') e\n"
+            + "on d.deptno = e.deptno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (deptno, name) values (e.deptno, e.ename)")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("merge into bonus b\n"
+            + "using (select * from emp where empno = 1 and job = 'doctor') e\n"
+            + "on b.empno = e.empno\n"
+            + "when matched then update set name = e.ename\n"
+            + "when not matched then insert (empno, name) values (e.empno, e.ename)")
+        .ok();
+  }
+
+  @Test void testMustFilterColumnsInExpressionSubQueries() {
+    final SqlValidatorFixture fixture = fixture()
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    // Scalar sub-query in the SELECT list
+    fixture.withSql("select ^(select name from dept)^\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select (select name from dept where name = 'accounting')\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+
+    // Valid because DEPTNO is a bypass field of DEPT
+    fixture.withSql("select (select name from dept where deptno = 1)\n"
+            + "from emp\n"
+            + "where empno = 1 and job = 'doctor'")
+        .ok();
+
+    // Sub-query as an IN operand in the WHERE clause
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno in (^select deptno from dept^) and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno in (select deptno from dept where name = 'accounting')\n"
+            + "and job = 'doctor'")
+        .ok();
+
+    // Sub-query as an EXISTS operand in the WHERE clause
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno = 1 and exists ^(select name from dept)^\n"
+            + "and job = 'doctor'")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, job from emp\n"
+            + "where empno = 1\n"
+            + "and exists (select name from dept where name = 'accounting')\n"
+            + "and job = 'doctor'")
+        .ok();
+
+    // Sub-query in VALUES
+    fixture.withSql("insert into bonus (empno, name)\n"
+            + "values (1, ^(select name from dept)^)")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("insert into bonus (empno, name)\n"
+            + "values (1, (select name from dept where name = 'accounting'))")
+        .ok();
+
+    // Sub-query in QUALIFY
+    fixture.withSql("select empno, ename, sum(deptno) over myWindow as sumDeptNo\n"
+            + "from emp WHERE empno > 1 and job = 'doctor'\n"
+            + "window myWindow as (partition by ename order by empno)\n"
+            + "qualify sumDeptNo in (^select deptno from dept^)")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select empno, ename, sum(deptno) over myWindow as sumDeptNo\n"
+            + "from emp WHERE empno > 1 and job = 'doctor'\n"
+            + "window myWindow as (partition by ename order by empno)\n"
+            + "qualify sumDeptNo in (select deptno from dept where name = 'accounting')")
+        .ok();
+  }
+
+  /**
+   * Tests that a must-filter requirement inside a sub-query used as the
+   * operand of UNNEST (via an ARRAY query constructor) is enforced, rather
+   * than being silently dropped.
+   */
+  @Test void testMustFilterColumnsInUnnestSubQuery() {
+    final SqlValidatorFixture fixture = fixture()
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+
+    fixture.withSql("select * from unnest(array(^select name from dept^))")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select * from bonus as b\n"
+            + "cross join unnest(array(^select name from dept^))")
+        .fails(missingFilters("NAME"));
+
+    fixture.withSql("select * from unnest(\n"
+            + "array(select name from dept where name = 'accounting'))")
+        .ok();
+    // Valid because DEPTNO is a bypass field of DEPT
+    fixture.withSql("select * from unnest(\n"
+            + "array(select name from dept where deptno = 10))")
+        .ok();
   }
 
   @Test void testAccessingNestedFieldsOfNullableRecord() {
