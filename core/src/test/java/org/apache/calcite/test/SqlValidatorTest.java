@@ -4326,6 +4326,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7830">[CALCITE-7830]
+   *  UPDATE fails with IndexOutOfBoundsException when a SET value's
+   *  type doesn't match the column</a>. */
+  @Test void testUpdateTypeMismatchGetNthExprRepro() {
+    sql("UPDATE emp SET deptno = ^true^")
+        .fails("Cannot assign to target field 'DEPTNO' of type INTEGER "
+            + "from source field 'EXPR\\$0' of type BOOLEAN");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6584">[CALCITE-6584]
+   * Validate prefixed column identifiers in SET clause of UPDATE
+   * statement</a>. */
+  @Test void testAliasInSetClauseOfUpdate() {
+    // good examples
+    // (Postgres does not consider these valid, but Calcite in this case
+    // is more lenient than Postgres.)
+    sql("UPDATE sales.emp AS e SET e.deptno = 10").ok();
+    sql("UPDATE emp AS e SET e.deptno = 10").ok();
+
+    // bad examples
+    sql("UPDATE sales.emp AS emp SET ^sales.emp^.deptno = 10")
+        .fails("Unknown identifier 'SALES.EMP'");
+    sql("UPDATE sales.emp AS e SET ^emp^.deptno = 10")
+        .fails("Unknown identifier 'EMP'");
+    sql("UPDATE emp AS e SET ^emp^.deptno = 10")
+        .fails("Unknown identifier 'EMP'");
+    sql("UPDATE emp AS e SET ^a.b.c.d^.deptno = 10")
+        .fails("Unknown identifier 'A.B.C.D'");
+    sql("UPDATE emp AS e SET ^dept^.deptno = 10")
+        .fails("Unknown identifier 'DEPT'");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-881">[CALCITE-881]
    * Allow schema.table.column references in GROUP BY</a>. */
   @Test void testSchemaTableColumnInGroupBy() {
