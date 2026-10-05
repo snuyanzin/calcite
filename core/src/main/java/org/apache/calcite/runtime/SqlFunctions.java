@@ -3654,7 +3654,22 @@ public class SqlFunctions {
   }
 
   public static boolean toBoolean(Number number) {
-    return !number.equals(0);
+    if (number instanceof BigDecimal) {
+      BigDecimal decimal = (BigDecimal) number;
+      return decimal.compareTo(BigDecimal.ZERO) != 0;
+    }
+    if (number instanceof Double) {
+      // Compare primitives: IEEE 754 treats -0.0 as equal to 0.0,
+      // whereas Double.equals does not
+      return ((Double) number).doubleValue() != 0d;
+    }
+    if (number instanceof Float) {
+      return ((Float) number).floatValue() != 0f;
+    }
+    if (number instanceof BigInteger) {
+      return ((BigInteger) number).signum() != 0;
+    }
+    return number.longValue() != 0;
   }
 
   public static boolean toBoolean(Object o) {
