@@ -128,4 +128,523 @@ from "scott".dept,
 
 !ok
 
+# LATERAL plus CTEs (WITH)
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20, 'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  lateral (select * from emp where emp.deptno = dept.deptno) as emp;
++--------+------------+-------+---------+-------+
+| DEPTNO | DNAME      | EMPNO | DEPTNO0 | ENAME |
++--------+------------+-------+---------+-------+
+|     10 | ACCOUNTING |  7782 |      10 | CLARK |
+|     20 | RESEARCH   |  7369 |      20 | SMITH |
++--------+------------+-------+---------+-------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6266] SqlValidatorException with LATERAL TABLE and JOIN
+# The problem also occurred in ', LATERAL (SELECT ...) JOIN'. 'JOIN' binds
+# tighter than ',', so the LATERAL item is inside a join, and it must see
+# the items before the ','. Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  lateral (select * from emp where emp.deptno = dept.deptno) as emp
+  cross join (values 'A', 'B') as v (v);
++--------+------------+-------+---------+-------+---+
+| DEPTNO | DNAME      | EMPNO | DEPTNO0 | ENAME | V |
++--------+------------+-------+---------+-------+---+
+|     10 | ACCOUNTING |  7782 |      10 | CLARK | A |
+|     10 | ACCOUNTING |  7782 |      10 | CLARK | B |
+|     20 | RESEARCH   |  7369 |      20 | SMITH | A |
+|     20 | RESEARCH   |  7369 |      20 | SMITH | B |
++--------+------------+-------+---------+-------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL on the right of a join sees the item on the left of the join (v)
+# and the item before the ',' (dept). Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  (values 'A', 'M') as v (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v.v in emp.ename) > 0) as emp;
++--------+------------+---+-------+---------+-------+
+| DEPTNO | DNAME      | V | EMPNO | DEPTNO0 | ENAME |
++--------+------------+---+-------+---------+-------+
+|     10 | ACCOUNTING | A |  7782 |      10 | CLARK |
+|     20 | RESEARCH   | M |  7369 |      20 | SMITH |
++--------+------------+---+-------+---------+-------+
+(2 rows)
+
+!ok
+
+# As above, with LEFT JOIN; a row of v that has no match in emp still appears
+# once for each dept, with a null ENAME. Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select dept.deptno, emp.ename, v.v
+from dept,
+  (values ('A'), ('M')) as v (v)
+  left join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v.v in emp.ename) > 0) as emp on true;
++--------+-------+---+
+| DEPTNO | ENAME | V |
++--------+-------+---+
+|     10 | CLARK | A |
+|     10 |       | M |
+|     20 | SMITH | M |
+|     20 |       | A |
++--------+-------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL sees two items before the ',' (v1 and dept) and the item on the
+# left of the join (v2). Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select v1.v as v1, dept.deptno, emp.ename, v2.v as v2
+from (values ('A'), ('M')) as v1 (v),
+  dept,
+  (values ('A'), ('M')) as v2 (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v2.v in emp.ename) > 0
+    and v1.v = 'A') as emp;
++----+--------+-------+----+
+| V1 | DEPTNO | ENAME | V2 |
++----+--------+-------+----+
+| A  |     10 | CLARK | A  |
+| A  |     20 | SMITH | M  |
++----+--------+-------+----+
+(2 rows)
+
+!ok
+
+# [CALCITE-7911] FROM a, b JOIN c is parsed incorrectly
+# LATERAL on the right of a join uses a column of the join's left input (v.v)
+# two times. Same result on PostgreSQL 14.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select dept.deptno, emp.ename, v.v
+from dept,
+  (values ('A'), ('M')) as v (v)
+  cross join lateral (select * from emp
+    where emp.deptno = dept.deptno
+    and position(v.v in emp.ename) > 0
+    and position(v.v in emp.ename) < 4) as emp;
++--------+-------+---+
+| DEPTNO | ENAME | V |
++--------+-------+---+
+|     10 | CLARK | A |
+|     20 | SMITH | M |
++--------+-------+---+
+(2 rows)
+
+!ok
+
+# UNNEST applied to VALUES
+with t (x, ys)
+  as (values (1, array [2,3]), (4, array [5]))
+select *
+from t,
+  unnest(t.ys) as y;
++---+--------+---+
+| X | YS     | Y |
++---+--------+---+
+| 1 | [2, 3] | 2 |
+| 1 | [2, 3] | 3 |
+| 4 | [5]    | 5 |
++---+--------+---+
+(3 rows)
+
+!ok
+
+# LATERAL UNNEST means the same as UNNEST
+# (Have checked Postgres)
+with t (x, ys)
+  as (values (1, array [2,3]), (4, array [5]))
+select *
+from t,
+  lateral unnest(t.ys) as y;
++---+--------+---+
+| X | YS     | Y |
++---+--------+---+
+| 1 | [2, 3] | 2 |
+| 1 | [2, 3] | 3 |
+| 4 | [5]    | 5 |
++---+--------+---+
+(3 rows)
+
+!ok
+
+# LEFT JOIN LATERAL
+select ename, deptno, ename2
+from emp as o
+  left join lateral (select ename as ename2
+                     from emp
+                     where deptno = o.deptno + 10) on true
+where job = 'MANAGER';
++-------+--------+--------+
+| ENAME | DEPTNO | ENAME2 |
++-------+--------+--------+
+| BLAKE |     30 |        |
+| CLARK |     10 | ADAMS  |
+| CLARK |     10 | FORD   |
+| CLARK |     10 | JONES  |
+| CLARK |     10 | SCOTT  |
+| CLARK |     10 | SMITH  |
+| JONES |     20 | ALLEN  |
+| JONES |     20 | BLAKE  |
+| JONES |     20 | JAMES  |
+| JONES |     20 | MARTIN |
+| JONES |     20 | TURNER |
+| JONES |     20 | WARD   |
++-------+--------+--------+
+(12 rows)
+
+!ok
+
+# 3 test cases for [CALCITE-7646] CorrelateProjectExtractor
+# does not handle nested field accesses cor0.field0.field1.
+
+# All queries use LATERAL, which converts directly to a Correlate.
+# The results were validated on Postgres
+
+!use scott
+
+select t.dd, t.x
+from dept d,
+lateral (select d.deptno as dd, u.x
+         from unnest(array[d.deptno + 100]) as u(x)) as t
+where d.dname = 'SALES';
++----+-----+
+| DD | X   |
++----+-----+
+| 30 | 130 |
++----+-----+
+(1 row)
+
+!ok
+
+select t.dd, t.dd1, t.x
+from dept d,
+lateral (select d.deptno as dd, d.deptno + 1 as dd1, u.x
+         from unnest(array[1, 2]) as u(x)) as t
+where d.dname = 'SALES';
++----+-----+---+
+| DD | DD1 | X |
++----+-----+---+
+| 30 |  31 | 1 |
+| 30 |  31 | 2 |
++----+-----+---+
+(2 rows)
+
+!ok
+!if (use_old_decorr) {
+# The correlated computation d.deptno + 1 (DD1) has been extracted into the left
+# input of the EnumerableNestedLoopJoin, as $f3. The right input,
+# UNNEST(ARRAY[1, 2]), references no correlation variable, so decorrelation
+# replaces the Correlate with a join.
+EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
+  EnumerableHashJoin(condition=[AND(=($3, $5), =($4, $6))], joinType=[semi])
+    EnumerableCalc(expr#0..2=[{inputs}], proj#0..2=[{exprs}], DEPTNO=[$t0], $f3=[$t1])
+      EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t0, $t3)], expr#5=['SALES':VARCHAR(14)], expr#6=[=($t1, $t5)], DEPTNO=[$t0], $f3=[$t4], $condition=[$t6])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableUncollect
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[ARRAY($t1, $t2)], EXPR$0=[$t3])
+            EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t0, $t3)], expr#5=['SALES':VARCHAR(14)], expr#6=[=($t1, $t5)], DEPTNO=[$t0], $f3=[$t4], $condition=[$t6])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+!}
+
+# COALESCE(d.path, ARRAY[CAST(NULL AS INTEGER)]) converts to
+# CASE(IS NOT NULL($cor0.PATH), $cor0.PATH, ARRAY(null:INTEGER)). The constant
+# ARRAY(null:INTEGER) operand must not prevent extracting the CASE to the
+# left input of the Correlate operator
+select d.deptno, t.x
+from (select deptno,
+        case when deptno = 10 then array[deptno, deptno + 1] end as path
+      from dept) as d,
+lateral (select * from unnest(coalesce(d.path, array[cast(null as integer)])) as u(x)) as t
+order by d.deptno, t.x;
++--------+----+
+| DEPTNO | X  |
++--------+----+
+|     10 | 10 |
+|     10 | 11 |
+|     20 |    |
+|     30 |    |
+|     40 |    |
++--------+----+
+(5 rows)
+
+!ok
+!if (use_old_decorr) {
+# The entire CASE produced by COALESCE has been extracted into the left input of the
+# EnumerableCorrelate, as $f2.  The right input reads the array through $cor0.$f2.
+# The query cannot be decorrelated because of the remaining Uncollect.
+EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+  EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0], X=[$t2])
+    EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[10], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[+($t0, $t6)], expr#8=[ARRAY($t3, $t7)], expr#9=[null:INTEGER NOT NULL ARRAY], expr#10=[CASE($t5, $t8, $t9)], expr#11=[IS NOT NULL($t10)], expr#12=[CAST($t10):INTEGER NOT NULL ARRAY NOT NULL], expr#13=[CAST($t12):INTEGER ARRAY NOT NULL], expr#14=[null:INTEGER], expr#15=[ARRAY($t14)], expr#16=[CASE($t11, $t13, $t15)], DEPTNO=[$t0], $f2=[$t16])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableUncollect
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.$f2], EXPR$0=[$t2])
+          EnumerableValues(tuples=[[{ 0 }]])
+!plan
+!}
+
+!set planner-rules original
+
+# [CALCITE-4693] An aggregate without GROUP BY returns one row even for
+# empty input, so every department must appear.
+select d.deptno, t.s
+from dept as d
+cross join lateral (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as t
+order by d.deptno;
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
+|     40 |          |
++--------+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but with a LIMIT 1 in the subquery.
+select d.deptno, t.s
+from dept as d
+cross join lateral (select sum(e.sal) as s from emp as e where e.deptno = d.deptno limit 1) as t;
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
+|     40 |          |
++--------+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the left input of an inner join inside a
+# LEFT JOIN LATERAL, so department 40 must have X = 1, not NULL.
+select d.deptno, t.s, t.x
+from dept as d
+left join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  join (values (1)) as b(x) on true) as t on true
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but the aggregate is the right input of the inner
+# join.
+select d.deptno, t.s, t.x
+from dept as d
+left join lateral (
+  select a.s, b.x
+  from (values (1)) as b(x)
+  join (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a on true) as t on true
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the preserved input of a LEFT JOIN, so
+# department 40 must have X = 1, not NULL.
+select d.deptno, t.s, t.x
+from dept as d
+cross join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  left join (values (1)) as b(x) on true) as t
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the null-generating input of a LEFT JOIN,
+# where no row has the same effect as a row of nulls.
+select d.deptno, t.x, t.s
+from dept as d
+cross join lateral (
+  select b.x, a.s
+  from (values (1)) as b(x)
+  left join (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a on true) as t
+order by d.deptno;
++--------+---+----------+
+| DEPTNO | X | S        |
++--------+---+----------+
+|     10 | 1 |  8750.00 |
+|     20 | 1 | 10875.00 |
+|     30 | 1 |  9400.00 |
+|     40 | 1 |          |
++--------+---+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but with a condition on the aggregate.
+select d.deptno, t.x, t.s
+from dept as d
+cross join lateral (
+  select b.x, a.s
+  from (values (1)) as b(x)
+  left join (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+    on a.s > 9000) as t
+order by d.deptno;
++--------+---+----------+
+| DEPTNO | X | S        |
++--------+---+----------+
+|     10 | 1 |          |
+|     20 | 1 | 10875.00 |
+|     30 | 1 |  9400.00 |
+|     40 | 1 |          |
++--------+---+----------+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] As above, but with COUNT, which is 0 rather than NULL for
+# department 40.
+select d.deptno, t.x, t.c
+from dept as d
+cross join lateral (
+  select b.x, a.c
+  from (values (1)) as b(x)
+  left join (select count(*) as c from emp as e where e.deptno = d.deptno) as a on true) as t
+order by d.deptno;
++--------+---+---+
+| DEPTNO | X | C |
++--------+---+---+
+|     10 | 1 | 3 |
+|     20 | 1 | 5 |
+|     30 | 1 | 6 |
+|     40 | 1 | 0 |
++--------+---+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is the null-generating input of a RIGHT JOIN.
+select d.deptno, t.s, t.x
+from dept as d
+cross join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  right join (values (1)) as b(x) on true) as t
+order by d.deptno;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
++--------+----------+---+
+(4 rows)
+
+!ok
+
+# [CALCITE-4693] The aggregate is an input of a FULL JOIN, which preserves it
+# as well as generating nulls for it, so department 40 must have both a row
+# with X = 1 and an unmatched row with X = NULL.
+select d.deptno, t.s, t.x
+from dept as d
+cross join lateral (
+  select a.s, b.x
+  from (select sum(e.sal) as s from emp as e where e.deptno = d.deptno) as a
+  full join (values (1)) as b(x) on a.s > 9000) as t
+order by d.deptno, t.s, t.x;
++--------+----------+---+
+| DEPTNO | S        | X |
++--------+----------+---+
+|     10 |  8750.00 |   |
+|     10 |          | 1 |
+|     20 | 10875.00 | 1 |
+|     30 |  9400.00 | 1 |
+|     40 |          | 1 |
+|     40 |          |   |
++--------+----------+---+
+(6 rows)
+
+!ok
+
+# [CALCITE-4693] An aggregate without GROUP BY returns one row even for
+# empty input, so every department must appear.
+!use post
+select k.deptno,
+  k.deptno - t2.totalAmount as amountDue
+from dept as k,
+  lateral (select sum(emp.deptno) as totalAmount
+    from emp
+    where emp.deptno = k.deptno) as t2;
++--------+-----------+
+| DEPTNO | AMOUNTDUE |
++--------+-----------+
+|     10 |       -10 |
+|     20 |         0 |
+|     30 |       -30 |
+|     40 |           |
++--------+-----------+
+(4 rows)
+
+!ok
+
 # End lateral.iq

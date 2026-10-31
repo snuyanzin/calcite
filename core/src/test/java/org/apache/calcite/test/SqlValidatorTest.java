@@ -8131,6 +8131,129 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Table 'DEPT' not found");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6266">[CALCITE-6266]
+   * SqlValidatorException with LATERAL TABLE and JOIN</a>. */
+  @Test void testCollectionTableWithLateral3() {
+    // CROSS JOIN binds tighter than ",", so "table(ramp(deptno))" is joined
+    // with "values"; LATERAL still sees "dept", which is before the comma.
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  cross join (values ('A'), ('B'))")
+        .ok();
+    // As above, using NATURAL JOIN
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  natural join emp")
+        .ok();
+    // As above, using comma
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  emp as e2")
+        .ok();
+    // Without 'as e2', relation name is not unique
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  ^emp^")
+        .fails("Duplicate relation name 'EMP' in FROM clause");
+    // LATERAL on the right of a join sees the items on the left of the join
+    // and the items before the comma
+    sql("select *\n"
+        + "from dept,\n"
+        + "  emp cross join lateral (select * from bonus\n"
+        + "    where bonus.ename = emp.ename and bonus.job = dept.name)")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7911">[CALCITE-7911]
+   * FROM a, b JOIN c is parsed incorrectly</a>. */
+  @Test void testJoinOnAfterComma() {
+    // "emp, dept join bonus on c" means "emp, (dept join bonus on c)",
+    // so c sees dept and bonus, but not emp
+    sql("select *\n"
+        + "from emp, dept join bonus on dept.name = bonus.job")
+        .ok();
+    sql("select *\n"
+        + "from emp, dept join bonus on ^emp^.ename = bonus.ename")
+        .fails("Table 'EMP' not found");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7217">[CALCITE-7217]
+   * LATERAL is lost after validation</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7312">[CALCITE-7312]
+   * Alias is not auto generated for LATERAL TABLE</a>.
+   * */
+  @Test void testCollectionTableWithLateralRewrite() {
+    sql("select * from emp, lateral table(ramp(emp.deptno)), dept")
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`,\n"
+            + "LATERAL TABLE(RAMP(`EMP`.`DEPTNO`)),\n"
+            + "`DEPT`");
+    // SELECT 1 to save space since test is verifying alias for the case of LATERAL TABLE
+    sql("select 1 from emp, lateral table(ramp(emp.deptno)), dept")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT 1\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`,\n"
+            + "LATERAL TABLE(RAMP(`EMP`.`DEPTNO`)) AS `EXPR$0`,\n"
+            + "`CATALOG`.`SALES`.`DEPT` AS `DEPT`");
+    // As above, with alias
+    sql("select * from emp, lateral table(ramp(emp.deptno)) as t(a), dept")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `EMP`,\n"
+            +  "LATERAL TABLE(RAMP(`EMP`.`DEPTNO`)) AS `T` (`A`),\n"
+            +  "`DEPT`");
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  cross join (values ('A'), ('B'))")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `DEPT`,\n"
+            +  "LATERAL TABLE(RAMP(`DEPTNO`))\n"
+            +  "CROSS JOIN (VALUES ROW('A'),\n"
+            +  "ROW('B'))");
+    // As above, using NATURAL JOIN
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  natural join emp")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `DEPT`,\n"
+            +  "LATERAL TABLE(RAMP(`DEPTNO`))\n"
+            +  "NATURAL INNER JOIN `EMP`");
+    // As above, using comma
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  emp as e2")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `EMP`,\n"
+            +  "LATERAL (SELECT *\n"
+            +  "FROM `DEPT`\n"
+            +  "WHERE `DEPT`.`DEPTNO` = `EMP`.`DEPTNO`),\n"
+            +  "`EMP` AS `E2`");
+    // LATERAL in left part of join
+    sql("select * from lateral table(ramp(1234)), emp")
+        .rewritesTo("SELECT *\n"
+            +  "FROM LATERAL TABLE(RAMP(1234)),\n"
+            +  "`EMP`");
+    // SELECT 1 to save space since test is verifying alias for the case of LATERAL TABLE
+    sql("select 1 from lateral table(ramp(1234)), emp")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT 1\n"
+            + "FROM LATERAL TABLE(RAMP(1234)) AS `EXPR$0`,\n"
+            + "`CATALOG`.`SALES`.`EMP` AS `EMP`");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5261">[CALCITE-5261]
+   * UNION(ALL) inside of the CURSOR throws an exception while validating the query</a>.
+   * */
   @Test void testCollectionTableWithCursorParam() {
     sql("select * from table(dedup(cursor(select * from emp),'ename'))")
         .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");

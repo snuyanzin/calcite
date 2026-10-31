@@ -529,7 +529,75 @@ class RelToSqlConverterTest {
         + "\n(SELECT TRUE AS $f0) AS t\nGROUP BY t.$f0";
     sql(query)
         .withRedshift().ok(expectedRedshift)
-        .withInformix().ok(expectedInformix);
+        .withInformix().ok(expectedInformix)
+        .withMssql().ok(expectedMssql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7679">[CALCITE-7679]
+   * RelToSqlConverter generates GROUP BY literals for dialects that do not
+   * support them when the constant is hidden by nested Projects</a>. */
+  @Test void testGroupByLiteralWithNestedProjects() {
+    final String query = "SELECT \"id\"\n"
+        + "FROM (\n"
+        + "  SELECT \"id\"\n"
+        + "  FROM (\n"
+        + "    SELECT NULL AS \"id\"\n"
+        + "    FROM \"employee\"\n"
+        + "  ) AS \"t1\"\n"
+        + ") AS \"t2\"\n"
+        + "GROUP BY \"id\"";
+    final String expectedPostgresql = "SELECT \"id\"\n"
+        + "FROM (SELECT NULL AS \"id\"\n"
+        + "FROM \"foodmart\".\"employee\") AS \"t0\"\n"
+        + "GROUP BY \"id\"";
+    sql(query)
+        // Disable RelBuilder's eager Project merging to retain the nested
+        // Projects that reproduce the constant GROUP BY conversion issue.
+        .withConfig(c -> c.withRelBuilderConfigTransform(b -> b.withBloat(-1)))
+        .withPostgresql().ok(expectedPostgresql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7679">[CALCITE-7679]
+   * RelToSqlConverter generates GROUP BY literals for dialects that do not
+   * support them when the constant is hidden by nested Projects</a>. */
+  @Test void testGroupByLiteralWithReorderedNestedProjects() {
+    final String query = "SELECT \"id\", \"employee_id\"\n"
+        + "FROM (\n"
+        + "  SELECT \"id\", \"employee_id\"\n"
+        + "  FROM (\n"
+        + "    SELECT \"employee_id\", NULL AS \"id\"\n"
+        + "    FROM \"employee\"\n"
+        + "  ) AS \"t1\"\n"
+        + ") AS \"t2\"\n"
+        + "GROUP BY \"id\", \"employee_id\"";
+    final String expectedPostgresql = "SELECT \"id\", \"employee_id\"\n"
+        + "FROM (SELECT NULL AS \"id\", \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\") AS \"t0\"\n"
+        + "GROUP BY \"id\", \"employee_id\"";
+    sql(query)
+        // Disable RelBuilder's eager Project merging to retain the nested
+        // Projects that reproduce the constant GROUP BY conversion issue.
+        .withConfig(c -> c.withRelBuilderConfigTransform(b -> b.withBloat(-1)))
+        .withPostgresql().ok(expectedPostgresql);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6910">[CALCITE-6910]
+   * RelToSql does not handle ASOF joins</a>. */
+  @Test void testAsofJoin() {
+    final String sql = "select \"employee\".\"full_name\" from \"employee\" asof join \"product\"\n"
+        + "match_condition \"employee\".\"department_id\" <= \"product\".\"product_id\"\n"
+        + "on \"employee\".\"salary\" = \"product\".\"gross_weight\"";
+    final String expected = "SELECT \"t\".\"full_name\"\nFROM "
+        + "(SELECT \"employee_id\", \"full_name\", \"first_name\", \"last_name\", \"position_id\", "
+        + "\"position_title\", \"store_id\", \"department_id\", \"birth_date\", \"hire_date\", "
+        + "\"end_date\", \"salary\", \"supervisor_id\", \"education_level\", \"marital_status\", "
+        + "\"gender\", \"management_role\", CAST(\"salary\" AS DOUBLE) AS \"salary0\"\n"
+        + "FROM \"foodmart\".\"employee\") AS \"t\"\nASOF JOIN \"foodmart\".\"product\" "
+        + "MATCH_CONDITION \"t\".\"department_id\" <= \"product\".\"product_id\" ON "
+        + "\"t\".\"salary0\" = \"product\".\"gross_weight\"";
+    sql(sql).ok(expected);
   }
 
   @Test void testGroupByDateLiteral() {
